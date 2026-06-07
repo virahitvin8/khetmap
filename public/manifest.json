@@ -1,0 +1,26 @@
+{
+  "name": "KhetMap - See your land from space",
+  "short_name": "KhetMap",
+  "description": "Free satellite-powered field analysis for farmers and researchers",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A1F0A",
+  "theme_color": "#0A1F0A",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["agriculture", "maps", "productivity"],
+  "lang": "en"
+}
