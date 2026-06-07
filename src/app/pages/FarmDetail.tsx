@@ -6,6 +6,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { subscribeToFarms, deleteFarm, updateFarm, Farm } from '../../services/database';
 import NDVIHistoryChart from '../components/NDVIHistoryChart';
 import FieldAnalysisReport from '../components/FieldAnalysisReport';
+import MultiSatelliteDashboard from '../components/MultiSatelliteDashboard';
 import { toast } from 'sonner';
 
 export default function FarmDetail() {
@@ -21,6 +22,7 @@ export default function FarmDetail() {
   const [showDelete, setShowDelete] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(false);
+  const [showMultiSat, setShowMultiSat] = useState(false);
 
   useEffect(() => {
     if (!user || !id) return;
@@ -267,7 +269,11 @@ td { padding: 10px; border: 1px solid #E2E8F0; }
           </button>
           <button onClick={() => setShowAnalysis(true)}
             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-[#EFF6FF] text-[#2563EB] rounded-lg text-xs font-semibold hover:bg-[#DBEAFE] transition-colors">
-            <FlaskConical size={14} /> Deep Analysis
+            <FlaskConical size={14} /> NDVI Analysis
+          </button>
+          <button onClick={() => setShowMultiSat(true)}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-[#F0FDF4] text-[#166534] rounded-lg text-xs font-semibold hover:bg-[#DCFCE7] transition-colors border border-[#BBF7D0]">
+            <Globe size={14} /> Multi-Satellite
           </button>
         </div>
 
@@ -337,6 +343,16 @@ td { padding: 10px; border: 1px solid #E2E8F0; }
           vertices={vertices}
           areaHa={farm.areaHa}
           onClose={() => setShowAnalysis(false)}
+        />
+      )}
+
+      {/* Multi-Satellite Analysis Dashboard */}
+      {showMultiSat && vertices && vertices.length >= 3 && (
+        <MultiSatelliteDashboard
+          fieldName={farm.name}
+          vertices={vertices}
+          areaHa={farm.areaHa}
+          onClose={() => setShowMultiSat(false)}
         />
       )}
 
