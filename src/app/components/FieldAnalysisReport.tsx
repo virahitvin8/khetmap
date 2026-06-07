@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FlaskRoundIcon as Flask, Leaf, Droplets, Mountain, AlertTriangle, TrendingUp, Download, RefreshCw } from 'lucide-react';
-import { analyzeField, FieldAnalysisResult, AnalysisLayer } from '../../services/fieldAnalysis';
+import { analyzeField, FieldAnalysisResult, AnalysisLayer, SatelliteSource, isSentinelAvailable, getActiveSource } from '../../services/fieldAnalysis';
 import { toast } from 'sonner';
 
 interface Vertex { lat: number; lng: number; }
@@ -14,15 +14,17 @@ interface FieldAnalysisReportProps {
 
 export default function FieldAnalysisReport({ fieldName, vertices, areaHa, onClose }: FieldAnalysisReportProps) {
   const [selectedLayer, setSelectedLayer] = useState<AnalysisLayer>('ndvi');
+  const [satSource, setSatSource] = useState<SatelliteSource>(getActiveSource());
   const [result, setResult] = useState<FieldAnalysisResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const sentinelAvail = isSentinelAvailable();
 
-  const runAnalysis = async (layer: AnalysisLayer) => {
+  const runAnalysis = async (layer: AnalysisLayer, source: SatelliteSource) => {
     setLoading(true);
     setError('');
     try {
-      const res = await analyzeField(fieldName, vertices, areaHa, layer);
+      const res = await analyzeField(fieldName, vertices, areaHa, layer, source);
       setResult(res);
     } catch (e: any) {
       setError(e.message || 'Analysis failed');
@@ -33,11 +35,16 @@ export default function FieldAnalysisReport({ fieldName, vertices, areaHa, onClo
 
   const handleLayerSelect = (layer: AnalysisLayer) => {
     setSelectedLayer(layer);
-    runAnalysis(layer);
+    runAnalysis(layer, satSource);
   };
 
-  // Run analysis on mount and when layer changes
-  useEffect(() => { runAnalysis(selectedLayer); }, [selectedLayer]);
+  const handleSourceChange = (source: SatelliteSource) => {
+    setSatSource(source);
+    runAnalysis(selectedLayer, source);
+  };
+
+  // Run analysis on mount
+  useEffect(() => { runAnalysis(selectedLayer, satSource); }, []);
 
   const getScoreColor = (score: number) => {
     if (score >= 70) return '#22C55E';
@@ -85,6 +92,25 @@ export default function FieldAnalysisReport({ fieldName, vertices, areaHa, onClo
               </button>
             ))}
           </div>
+
+          {/* Satellite source toggle (only show when Sentinel-2 is configured) */}
+          {sentinelAvail && (
+            <div className="flex items-center gap-2 mt-2 bg-[#F0FDF4] border border-[#BBF7D0] rounded-lg px-3 py-1.5">
+              <span className="text-[10px] font-semibold text-[#166534]">🛰️ Source:</span>
+              <button onClick={() => handleSourceChange('modis')}
+                className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-all ${
+                  satSource === 'modis' ? 'bg-white text-[#2563EB] shadow-sm' : 'text-[#64748B] hover:text-[#2563EB]'
+                }`}>
+                MODIS (250m)
+              </button>
+              <button onClick={() => handleSourceChange('sentinel2')}
+                className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-all ${
+                  satSource === 'sentinel2' ? 'bg-white text-[#2563EB] shadow-sm' : 'text-[#64748B] hover:text-[#2563EB]'
+                }`}>
+                Sentinel-2 (10m)
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="px-5 py-4 space-y-4">

@@ -1,36 +1,38 @@
 /**
  * Deep Field Analysis Service
- * 
- * Samples satellite imagery (NASA GIBS WMS) at grid points within a field polygon
- * and calculates comprehensive health statistics.
- * 
- * How it works:
- * 1. Takes field polygon vertices
- * 2. Creates a uniform grid of sample points within the polygon
- * 3. For each layer (NDVI/NDWI/SAVI), fetches the WMS PNG tile
- * 4. Samples pixel colors at each grid point within the polygon
- * 5. Maps colors to health values
- * 6. Returns detailed statistics and health scores
+ *
+ * Samples satellite imagery from either:
+ * - NASA GIBS MODIS (250m resolution, always available, no API key needed)
+ * - Copernicus Sentinel-2 (10m resolution, needs free Copernicus Data Space account)
+ *
+ * Grid-samples pixel colors within a field polygon and produces health scores.
  */
 
 interface Vertex { lat: number; lng: number; }
 
 export type AnalysisLayer = 'ndvi' | 'ndwi' | 'savi';
+export type SatelliteSource = 'modis' | 'sentinel2';
 
 interface LayerConfig {
-  gibsLayer: string;
+  modisLayer: string;
+  sentinelLayer: string;
   title: string;
   icon: string;
   unit: string;
+  resolutionMODIS: string;
+  resolutionSentinel: string;
   colorRamp: Array<{ color: [number, number, number]; value: number; label: string }>;
 }
 
 const LAYER_CONFIGS: Record<AnalysisLayer, LayerConfig> = {
   ndvi: {
-    gibsLayer: 'MODIS_Terra_NDVI_8Day',
+    modisLayer: 'MODIS_Terra_NDVI_8Day',
+    sentinelLayer: 'NDVI',
     title: 'Crop Health (NDVI)',
     icon: '🌿',
     unit: 'NDVI',
+    resolutionMODIS: '250m',
+    resolutionSentinel: '10m',
     colorRamp: [
       { color: [162, 120, 72], value: 0.0, label: 'Bare Soil' },
       { color: [180, 160, 80], value: 0.15, label: 'Sparse' },
@@ -42,10 +44,13 @@ const LAYER_CONFIGS: Record<AnalysisLayer, LayerConfig> = {
     ],
   },
   ndwi: {
-    gibsLayer: 'MODIS_Terra_NDWI_8Day',
+    modisLayer: 'MODIS_Terra_NDWI_8Day',
+    sentinelLayer: 'NDWI',
     title: 'Water Index (NDWI)',
     icon: '💧',
     unit: 'NDWI',
+    resolutionMODIS: '250m',
+    resolutionSentinel: '10m',
     colorRamp: [
       { color: [200, 180, 120], value: -0.3, label: 'Dry' },
       { color: [160, 180, 140], value: -0.1, label: 'Low Moisture' },
@@ -55,10 +60,13 @@ const LAYER_CONFIGS: Record<AnalysisLayer, LayerConfig> = {
     ],
   },
   savi: {
-    gibsLayer: 'MODIS_Terra_SAVI_8Day',
+    modisLayer: 'MODIS_Terra_SAVI_8Day',
+    sentinelLayer: 'SAVI',
     title: 'Soil Health (SAVI)',
     icon: '🪨',
     unit: 'SAVI',
+    resolutionMODIS: '250m',
+    resolutionSentinel: '10m',
     colorRamp: [
       { color: [180, 140, 80], value: 0.0, label: 'Bare Soil' },
       { color: [160, 160, 100], value: 0.15, label: 'Low' },
@@ -78,6 +86,8 @@ export interface SamplePoint {
 
 export interface FieldAnalysisResult {
   layer: AnalysisLayer;
+  satelliteSource: SatelliteSource;
+  resolution: string;
   fieldName: string;
   sampleCount: number;
   meanValue: number;
@@ -103,8 +113,24 @@ export interface FieldAnalysisResult {
   };
 }
 
-/** GIBS WMS endpoint */
+/** GIBS WMS endpoint (MODIS, always available) */
 const GIBS_WMS = 'https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi';
+
+/** Sentinel Hub WMS base (needs INSTANCE_ID via env) */
+const getSentinelWMS = () => {
+  const id = import.meta.env.VITE_SENTINEL_INSTANCE_ID;
+  return id ? `https://services.sentinel-hub.com/ogc/wms/${id}` : null;
+};
+
+/** Check if Sentinel-2 high-res is available */
+export function isSentinelAvailable(): boolean {
+  return !!import.meta.env.VITE_SENTINEL_INSTANCE_ID;
+}
+
+/** Get the active satellite source */
+export function getActiveSource(): SatelliteSource {
+  return isSentinelAvailable() ? 'sentinel2' : 'modis';
+}
 
 /**
  * Build WMS GetMap URL for a given bounding box and layer
@@ -248,7 +274,8 @@ export async function analyzeField(
   vertices: Vertex[],
   areaHa: number,
   layer: AnalysisLayer = 'ndvi',
-  sampleGridSize = 20 // 20x20 grid = 400 max sample points
+  source: SatelliteSource = isSentinelAvailable() ? 'sentinel2' : 'modis',
+  sampleGridSize = 20
 ): Promise<FieldAnalysisResult> {
   const config = getLayerConfig(layer);
 
@@ -317,8 +344,8 @@ export async function analyzeField(
     }
   }
 
-  // Fetch the WMS image for the bounding box
-  const imageUrl = getWMSTileUrl(config.gibsLayer, bbox);
+  // Fetch the WMS image from the appropriate satellite source
+  const imageUrl = getWMSTileUrl(layer, bbox, source);
   const img = await loadImage(imageUrl);
 
   // Create a canvas to read pixel values
