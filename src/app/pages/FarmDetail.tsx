@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { ArrowLeft, MapPin, Leaf, Ruler, Calendar, FileDown, Download, Edit3, Trash2, Globe, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, MapPin, Leaf, Ruler, Calendar, FileDown, Download, Edit3, Trash2, Globe, AlertTriangle, FlaskRoundIcon as Flask } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { subscribeToFarms, deleteFarm, updateFarm, Farm } from '../../services/database';
 import NDVIHistoryChart from '../components/NDVIHistoryChart';
+import FieldAnalysisReport from '../components/FieldAnalysisReport';
 import { toast } from 'sonner';
 
 export default function FarmDetail() {
@@ -19,6 +20,7 @@ export default function FarmDetail() {
   const [newName, setNewName] = useState('');
   const [showDelete, setShowDelete] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showAnalysis, setShowAnalysis] = useState(false);
 
   useEffect(() => {
     if (!user || !id) return;
@@ -263,6 +265,10 @@ td { padding: 10px; border: 1px solid #E2E8F0; }
             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-[#EFF6FF] text-[#2563EB] rounded-lg text-xs font-semibold hover:bg-[#DBEAFE] transition-colors">
             <Globe size={14} /> Analyze NDVI
           </button>
+          <button onClick={() => setShowAnalysis(true)}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-[#EFF6FF] text-[#2563EB] rounded-lg text-xs font-semibold hover:bg-[#DBEAFE] transition-colors">
+            <Flask size={14} /> Deep Analysis
+          </button>
         </div>
 
         {/* NDVI History */}
@@ -323,6 +329,16 @@ td { padding: 10px; border: 1px solid #E2E8F0; }
           </div>
         )}
       </div>
+
+      {/* Deep Field Analysis Modal */}
+      {showAnalysis && vertices && vertices.length >= 3 && (
+        <FieldAnalysisReport
+          fieldName={farm.name}
+          vertices={vertices}
+          areaHa={farm.areaHa}
+          onClose={() => setShowAnalysis(false)}
+        />
+      )}
 
       {/* Delete confirmation */}
       {showDelete && (
