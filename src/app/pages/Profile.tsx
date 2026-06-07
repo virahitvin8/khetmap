@@ -1,20 +1,10 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
-import { User, LogOut, ChevronRight } from 'lucide-react';
+import { User, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { signOut } from '../../services/auth';
 import LanguageSelector from '../components/LanguageSelector';
-import { toast } from 'sonner';
 
 const menuSections = [
-  {
-    title: 'Account',
-    items: [
-      { icon: User, label: 'edit' },
-      { icon: Bell, label: 'notifications', value: 'on' },
-    ],
-  },
   {
     title: 'Data',
     items: [
@@ -34,23 +24,9 @@ const menuSections = [
 ];
 
 export default function Profile() {
-  const navigate = useNavigate();
   const { user } = useAuth();
-  const { t, lang, setLang } = useLanguage();
-  const [isSigningOut, setIsSigningOut] = useState(false);
+  const { t, lang } = useLanguage();
   const [showLangSelector, setShowLangSelector] = useState(false);
-
-  const handleSignOut = async () => {
-    try {
-      setIsSigningOut(true);
-      await signOut();
-      navigate('/');
-    } catch {
-      toast.error('Failed to sign out');
-    } finally {
-      setIsSigningOut(false);
-    }
-  };
 
   return (
     <div className="h-full flex flex-col bg-[#0A1F0A] overflow-auto">
@@ -69,7 +45,7 @@ export default function Profile() {
             )}
           </div>
           <h2 className="text-lg font-bold text-[#E8F5E9]">{user?.name || 'Farmer'}</h2>
-          <p className="text-xs text-[#6B8E6B] mb-4">{user?.email || user?.phone || 'No contact'}</p>
+          <p className="text-xs text-[#6B8E6B] mb-4">{user?.email || 'Local mode — data saved on this device'}</p>
           <div className="flex items-center gap-6">
             <div className="text-center">
               <p className="text-xl font-bold text-[#52B788]">0</p>
@@ -119,33 +95,15 @@ export default function Profile() {
                     <item.icon size={18} className="text-[#A5D6A7]" />
                     <span className="text-sm text-[#E8F5E9]">{t('profile.' + item.label)}</span>
                   </div>
-                  {'value' in item && item.value ? (
-                    <span className="text-xs text-[#6B8E6B]">{item.value === 'on' ? t('common.on') : item.value}</span>
-                  ) : (
-                    <ChevronRight size={14} className="text-[#6B8E6B]" />
-                  )}
+                  <ChevronRight size={14} className="text-[#6B8E6B]" />
                 </button>
               ))}
             </div>
           </div>
         ))}
 
-        {/* Sign out */}
-        <button
-          onClick={handleSignOut}
-          disabled={isSigningOut}
-          className="w-full flex items-center justify-center gap-2 bg-[#EF5350]/10 border border-[#EF5350]/30 rounded-xl py-3.5 text-sm font-semibold text-[#EF5350] hover:bg-[#EF5350]/20 transition-colors disabled:opacity-50"
-        >
-          {isSigningOut ? (
-            <div className="w-4 h-4 border-2 border-[#EF5350] border-t-transparent rounded-full animate-spin" />
-          ) : (
-            <LogOut size={18} />
-          )}
-          {t('profile.signout')}
-        </button>
-
         <p className="text-[10px] text-center text-[#6B8E6B] opacity-60">
-          KhetMap v1.0.0 · Open Source · Free for everyone
+          KhetMap v1.0.0 · Open Source · Free for everyone · No sign-up required
         </p>
       </div>
 
@@ -157,18 +115,11 @@ export default function Profile() {
   );
 }
 
-// Icon components
+// SVG icon components
 function Globe({ size, className }: { size: number; className?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
       <circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>
-    </svg>
-  );
-}
-function Bell({ size, className }: { size: number; className?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="M6 8a6 6 0 0 1 12 0c0 7 4 9 4 9H2s4-2 4-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
     </svg>
   );
 }

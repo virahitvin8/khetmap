@@ -1,7 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { getAuthInstance } from '../services/firebase';
-import { getUserProfile } from '../services/auth';
+import { createContext, useContext, useState, ReactNode } from 'react';
 
 interface UserProfile {
   uid: string;
@@ -13,7 +10,6 @@ interface UserProfile {
 
 interface AuthContextType {
   user: UserProfile | null;
-  firebaseUser: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   refreshUser: () => Promise<void>;
@@ -21,51 +17,26 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  firebaseUser: null,
-  isLoading: true,
-  isAuthenticated: false,
+  isLoading: false,
+  isAuthenticated: true,
   refreshUser: async () => {},
 });
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const auth = getAuthInstance();
-    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
-      setFirebaseUser(fbUser);
-      
-      if (fbUser) {
-        try {
-          const profile = await getUserProfile(fbUser.uid);
-          setUser(profile);
-        } catch {
-          setUser({
-            uid: fbUser.uid,
-            name: fbUser.displayName || 'Farmer',
-            email: fbUser.email,
-            phone: fbUser.phoneNumber,
-            photoURL: fbUser.photoURL,
-          });
-        }
-      } else {
-        setUser(null);
-      }
-      setIsLoading(false);
-    });
-
-    return unsubscribe;
-  }, []);
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user] = useState<UserProfile>({
+    uid: 'local',
+    name: 'Farmer',
+    email: null,
+    phone: null,
+    photoURL: null,
+  });
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        firebaseUser,
-        isLoading,
-        isAuthenticated: !!user,
+        isLoading: false,
+        isAuthenticated: true,
         refreshUser: async () => {},
       }}
     >

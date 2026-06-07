@@ -20,12 +20,15 @@ const translations: Translations = {
   // Welcome page
   'welcome.title': { en: 'KhetMap', te: 'ఖేత్‌మ్యాప్', hi: 'खेतमैप' },
   'welcome.tagline': { en: 'See your land from space', te: 'మీ భూమిని అంతరిక్షం నుండి చూడండి', hi: 'अपनी ज़मीन को अंतरिक्ष से देखें' },
-  'welcome.description': { en: 'Analyze your fields using live satellite imagery.', te: 'ప్రత్యక్ష ఉపగ్రహ చిత్రాలతో మీ పొలాలను విశ్లేషించండి.', hi: 'लाइव उपग्रह इमेजरी से अपने खेतों का विश्लेषण करें।' },
-  'welcome.features': { en: 'Crop health · Water logging · Terrain · Weather', te: 'పంట ఆరోగ్యం · నీటి నిల్వ · భూభాగం · వాతావరణం', hi: 'फसल स्वास्थ्य · जल जमाव · भूभाग · मौसम' },
-  'welcome.google': { en: 'Continue with Google', te: 'Googleతో కొనసాగండి', hi: 'Google से जारी रखें' },
-  'welcome.email': { en: 'Continue with Email', te: 'ఇమెయిల్‌తో కొనసాగండి', hi: 'ईमेल से जारी रखें' },
-  'welcome.or': { en: 'or', te: 'లేదా', hi: 'या' },
-  'welcome.free': { en: 'Free for everyone · Powered by open satellite data', te: 'అందరికీ ఉచితం · ఓపెన్ శాటిలైట్ డేటా ద్వారా', hi: 'सबके लिए मुफ्त · ओपन सैटेलाइट डेटा द्वारा संचालित' },
+  'welcome.purpose': { en: 'KhetMap is a free, satellite-powered tool that lets farmers, researchers, and GIS professionals analyze agricultural fields from space — right from your browser.', te: 'ఖేత్‌మ్యాప్ ఒక ఉచిత ఉపగ్రహ-ఆధారిత సాధనం, ఇది రైతులు, పరిశోధకులు మరియు GIS నిపుణులు తమ వ్యవసాయ పొలాలను అంతరిక్షం నుండి విశ్లేషించడానికి వీలు కల్పిస్తుంది.', hi: 'खेतमैप एक मुफ्त उपग्रह-संचालित उपकरण है जो किसानों, शोधकर्ताओं और GIS पेशेवरों को अपने ब्राउज़र से खेतों का विश्लेषण करने देता है।' },
+  'welcome.feature.crophealth': { en: 'Crop Health (NDVI) — Monitor vegetation vigor and detect stress', te: 'పంట ఆరోగ్యం (NDVI) — వృక్ష శక్తిని పర్యవేక్షించండి', hi: 'फसल स्वास्थ्य (NDVI) — वनस्पति की ताकत की निगरानी करें' },
+  'welcome.feature.water': { en: 'Water Index (NDWI) — Identify waterlogged areas and moisture', te: 'నీటి సూచిక (NDWI) — నీటి నిల్వ ప్రాంతాలను గుర్తించండి', hi: 'जल सूचकांक (NDWI) — जल भराव वाले क्षेत्रों की पहचान करें' },
+  'welcome.feature.soil': { en: 'Soil Health (SAVI) — Soil-adjusted vegetation analysis', te: 'నేల ఆరోగ్యం (SAVI) — నేల-సర్దుబాటు వృక్ష విశ్లేషణ', hi: 'मिट्टी स्वास्थ्य (SAVI) — मिट्टी-समायोजित वनस्पति विश्लेषण' },
+  'welcome.feature.draw': { en: 'Draw & Save Fields — Mark boundaries, calculate areas', te: 'పొలాలు గీయండి & సేవ్ చేయండి — సరిహద్దులు గుర్తించండి', hi: 'खेत बनाएं और सहेजें — सीमाएं चिह्नित करें, क्षेत्रफल गणना करें' },
+  'welcome.feature.pills': { en: '🛰️ Live Satellite · 🌿 Crop Health · 💧 Water Analysis · 🗺️ Draw Fields · 📊 Export Data', te: '🛰️ ప్రత్యక్ష ఉపగ్రహం · 🌿 పంట ఆరోగ్యం · 💧 నీటి విశ్లేషణ · 🗺️ పొలాలు గీయండి · 📊 డేటా ఎగుమతి', hi: '🛰️ लाइव सैटेलाइट · 🌿 फसल स्वास्थ्य · 💧 जल विश्लेषण · 🗺️ खेत बनाएं · 📊 डेटा निर्यात' },
+  'welcome.getstarted': { en: 'Get Started', te: 'ప్రారంభించండి', hi: 'शुरू करें' },
+  'welcome.free': { en: 'Free for everyone · Powered by open satellite data · No sign-up required', te: 'అందరికీ ఉచితం · ఓపెన్ శాటిలైట్ డేటా ద్వారా · సైన్-అప్ అవసరం లేదు', hi: 'सबके लिए मुफ्त · ओपन सैटेलाइट डेटा द्वारा संचालित · साइन-अप की आवश्यकता नहीं' },
+  'welcome.offline': { en: 'Works offline with saved fields', te: 'సేవ్ చేసిన పొలాలతో ఆఫ్‌లైన్లో పనిచేస్తుంది', hi: 'सहेजे गए खेतों के साथ ऑफ़लाइन काम करता है' },
 
   // Map page
   'map.draw': { en: 'Draw Field', te: 'పొలం గీయండి', hi: 'खेत बनाएं' },
@@ -93,7 +96,6 @@ const translations: Translations = {
   'profile.rate': { en: 'Rate the App', te: 'యాప్‌ను రేట్ చేయండి', hi: 'ऐप को रेट करें' },
   'profile.fields': { en: 'Fields', te: 'పొలాలు', hi: 'खेत' },
   'profile.analyses': { en: 'Analyses', te: 'విశ్లేషణలు', hi: 'विश्लेषण' },
-  'profile.signout': { en: 'Sign Out', te: 'సైన్ అవుట్', hi: 'साइन आउट' },
   'profile.languages': { en: 'English · తెలుగు · हिंदी', te: 'English · తెలుగు · हिंदी', hi: 'English · తెలుగు · हिंदी' },
   'profile.choose': { en: 'Choose Language', te: 'భాషను ఎంచుకోండి', hi: 'भाषा चुनें' },
 

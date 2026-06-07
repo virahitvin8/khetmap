@@ -2,19 +2,23 @@
 
 ## Phase 0 — Foundation ✅
 - [x] Project structure (Vite + React + Tailwind)
-- [x] Firebase Auth (Google + Email)
-- [x] Auth context with routing
-- [x] Landing page
-- [x] Map placeholder
-- [x] Farms list
-- [x] Analysis tools
+- [x] Landing page with app purpose
+- [x] Map with satellite basemap
+- [x] Field drawing tools
+- [x] Local storage for saving fields
+- [x] NDVI / NDWI / SAVI analysis layers
+- [x] Farms list with search & filter
+- [x] Farm detail with notes & export
+- [x] Analysis tools page
 - [x] Profile page
+- [x] Multi-language (Telugu/Hindi/English)
 
 ## Phase 1 — Map Integration
-- [ ] Mapbox / Leaflet satellite basemap
-- [ ] Draw polygon tools
-- [ ] Save farm to Firestore
+- [ ] Leaflet satellite basemap improvements
+- [ ] Draw polygon tools (done)
+- [ ] GeoJSON/KML import (done)
 - [ ] My Location button
+- [ ] Search location improvements
 
 ## Phase 2 — Satellite Analysis
 - [ ] Google Earth Engine API integration
@@ -23,13 +27,13 @@
 - [ ] Results overlay on map
 
 ## Phase 3 — Data Upload
-- [ ] KML/CSV file parser
-- [ ] Upload from device
+- [ ] KML/CSV file parser (done)
+- [ ] Upload from device (done)
 - [ ] Multi-polygon support
 
 ## Phase 4 — i18n & Polish
-- [ ] Telugu, Hindi, Tamil, Kannada
-- [ ] Offline cache
+- [x] Telugu, Hindi
+- [ ] Offline cache improvements
 - [ ] PWA support
 
 ## Phase 5 — Launch

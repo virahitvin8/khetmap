@@ -46,42 +46,23 @@ git push -u origin main
 After the first deploy succeeds:
 
 1. In Vercel Dashboard → your project → **Settings** → **Environment Variables**
-2. Add these **exact** values (copy from your `KhetMap/.env` file):
+2. Add these values (if you have the corresponding API keys):
 
-| Name | Value |
-|------|-------|
-| `VITE_FIREBASE_API_KEY` | `AIzaSyC1gRJtgz2yGQddSx9-HE7e-I_rp8tbt_4` |
-| `VITE_FIREBASE_AUTH_DOMAIN` | `kheat-map.firebaseapp.com` |
-| `VITE_FIREBASE_PROJECT_ID` | `kheat-map` |
-| `VITE_FIREBASE_STORAGE_BUCKET` | `kheat-map.firebasestorage.app` |
-| `VITE_FIREBASE_MESSAGING_SENDER_ID` | `733824481645` |
-| `VITE_FIREBASE_APP_ID` | `1:733824481645:web:2dff76dc4f43f91ae7c264` |
-| `VITE_OWM_API_KEY` | `37da66a5fcbb269af668bec74697f9c7` |
-| `VITE_SENTINEL_INSTANCE_ID` | `96f50ac6-5a50-4ea1-ad77-e7cdd2c8cc7f` |
-| `VITE_SENTINEL_NDWI_LAYER` | `NDWI` |
-| `VITE_SENTINEL_NDVI_LAYER` | `NDVI` |
+| Name | Value | Required? |
+|------|-------|-----------|
+| `VITE_OWM_API_KEY` | `your_openweathermap_api_key` | 🟡 Recommended (weather) |
+| `VITE_SENTINEL_INSTANCE_ID` | `your_instance_id` | 🟢 Optional (high-res NDWI) |
+| `VITE_SENTINEL_NDWI_LAYER` | `NDWI` | 🟢 Optional |
+| `VITE_SENTINEL_NDVI_LAYER` | `NDVI` | 🟢 Optional |
 
-3. Click **"Save"** → **"Redeploy"** (a new deploy will start automatically)
+3. Click **"Save"** → **"Redeploy"**
 
-### Step 5: Enable Firebase Google Sign-in
-
-1. Go to [console.firebase.google.com](https://console.firebase.google.com/)
-2. Select project **"kheat-map"**
-3. Left menu → **Authentication** → **Sign-in method** tab
-4. Click **Google** → Toggle **Enable** ON
-5. Support email: select `gsai08613@gmail.com` (or your email)
-6. Click **Save**
-
-### Step 6: Create Firestore Database
-
-1. In Firebase Console → **Firestore Database**
-2. Click **"Create database"**
-3. Select **test mode** (for development) → **Next** → **Enable**
-
-### ✅ Done! Your App is Live!
+### Step 5: ✅ Done! Your App is Live!
 
 Your KhetMap will be available at:
 `https://khetmap.vercel.app` (or whatever name Vercel assigns)
+
+**No sign-up required** — the app works entirely in the browser with no backend needed.
 
 ---
 
@@ -111,5 +92,4 @@ git push
 ## ❓ Need Help?
 
 - **Vercel Dashboard**: [vercel.com/dashboard](https://vercel.com/dashboard)
-- **Firebase Console**: [console.firebase.google.com](https://console.firebase.google.com/)
-- **Get new OWM key**: [home.openweathermap.org/api_keys](https://home.openweathermap.org/api_keys)
+- **Get OWM key**: [home.openweathermap.org/api_keys](https://home.openweathermap.org/api_keys)
