@@ -36,9 +36,12 @@ export default function FarmDetail() {
   });
 
   const formatArea = (ha: number) => {
-    if (ha < 0.01) return `${(ha * 10000).toFixed(0)} m²`;
-    if (ha < 1) return `${(ha * 100).toFixed(1)} cents`;
-    return `${ha.toFixed(2)} ha (${(ha * 2.471).toFixed(2)} acres)`;
+    const sqm = ha * 10000;
+    const acres = ha * 2.47105;
+    const sqkm = ha / 100;
+    if (ha < 0.001) return `${sqm.toFixed(1)} m²`;
+    if (ha < 1) return `${(ha * 100).toFixed(2)} cents (${acres.toFixed(4)} acres)`;
+    return `${ha.toFixed(4)} ha · ${acres.toFixed(4)} acres · ${sqkm.toFixed(6)} km²`;
   };
 
   const handleRename = async () => {
@@ -47,9 +50,7 @@ export default function FarmDetail() {
       await updateFarm(user.uid, farm.id, { name: newName.trim() } as any);
       setEditingName(false);
       toast.success('Field renamed');
-    } catch {
-      toast.error('Failed to rename');
-    }
+    } catch { toast.error('Failed to rename'); }
   };
 
   const handleDelete = async () => {
@@ -58,9 +59,7 @@ export default function FarmDetail() {
       await deleteFarm(user.uid, farm.id);
       toast.success(t('farms.deletedone'));
       navigate('/farms');
-    } catch {
-      toast.error('Failed to delete field');
-    }
+    } catch { toast.error('Failed to delete field'); }
   };
 
   const handleSaveNote = async () => {
@@ -69,154 +68,150 @@ export default function FarmDetail() {
       setSaving(true);
       await updateFarm(user.uid, farm.id, { notes: note } as any);
       toast.success(t('detail.notesaved'));
-    } catch {
-      toast.error('Failed to save note');
-    } finally {
-      setSaving(false);
-    }
+    } catch { toast.error('Failed to save note'); }
+    finally { setSaving(false); }
   };
 
-  const handleExport = (format: 'geojson' | 'kml' | 'csv') => {
+  const handleExport = (format: string) => {
     if (!farm?.geometry?.vertices) return;
     const vertices = farm.geometry.vertices as Array<{ lat: number; lng: number }>;
-    const coords = vertices.map(v => [v.lng, v.lat]);
-    // Close polygon
+    const coords = vertices.map((v: any) => [v.lng, v.lat]);
     coords.push(coords[0]);
 
-    let content = '';
-    let filename = '';
-    let mime = '';
-
     if (format === 'geojson') {
-      content = JSON.stringify({
+      const content = JSON.stringify({
         type: 'Feature',
         properties: { name: farm.name, areaHa: farm.areaHa, cropType: farm.cropType },
         geometry: { type: 'Polygon', coordinates: [coords] },
       }, null, 2);
-      filename = `${farm.name.replace(/\s+/g, '_')}.geojson`;
-      mime = 'application/geo+json';
+      downloadFile(content, `${farm.name.replace(/\s+/g, '_')}.geojson`, 'application/geo+json');
+      toast.success('Exported as GeoJSON');
     } else if (format === 'kml') {
-      content = `<?xml version="1.0" encoding="UTF-8"?>
+      const content = `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
     <Placemark>
       <name>${farm.name}</name>
+      <description>Area: ${farm.areaHa.toFixed(4)} ha</description>
       <Polygon>
         <outerBoundaryIs>
           <LinearRing>
-            <coordinates>${coords.map(c => c.join(',')).join(' ')}</coordinates>
+            <coordinates>${coords.map((c: number[]) => c.join(',')).join(' ')}</coordinates>
           </LinearRing>
         </outerBoundaryIs>
       </Polygon>
     </Placemark>
   </Document>
 </kml>`;
-      filename = `${farm.name.replace(/\s+/g, '_')}.kml`;
-      mime = 'application/vnd.google-earth.kml+xml';
-    } else {
-      const header = 'lat,lon\n';
-      const rows = vertices.map(v => `${v.lat},${v.lng}`).join('\n');
-      content = header + rows;
-      filename = `${farm.name.replace(/\s+/g, '_')}.csv`;
-      mime = 'text/csv';
+      downloadFile(content, `${farm.name.replace(/\s+/g, '_')}.kml`, 'application/vnd.google-earth.kml+xml');
+      toast.success('Exported as KML');
+    } else if (format === 'csv') {
+      const header = 'lat,lon,point_number\n';
+      const rows = vertices.map((v: any, i: number) => `${v.lat},${v.lng},${i + 1}`).join('\n');
+      downloadFile(header + rows, `${farm.name.replace(/\s+/g, '_')}.csv`, 'text/csv');
+      toast.success('Exported as CSV');
+    } else if (format === 'report') {
+      const center = farm.geometry.center as { lat: number; lng: number } | undefined;
+      const html = `<!DOCTYPE html>
+<html><head><title>${farm.name} - Field Report</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 40px; color: #1E293B; }
+h1 { color: #2563EB; border-bottom: 2px solid #2563EB; padding-bottom: 8px; }
+table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+th { background: #EFF6FF; text-align: left; padding: 10px; border: 1px solid #E2E8F0; }
+td { padding: 10px; border: 1px solid #E2E8F0; }
+.footer { margin-top: 30px; font-size: 12px; color: #94A3B8; }
+</style></head><body>
+<h1>${farm.name}</h1>
+<p>Generated: ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+<table>
+<tr><th>Property</th><th>Value</th></tr>
+<tr><td>Crop Type</td><td>${farm.cropType || 'Not set'}</td></tr>
+<tr><td>Area</td><td>${farm.areaHa.toFixed(4)} ha (${(farm.areaHa * 2.47105).toFixed(4)} acres, ${(farm.areaHa * 10000).toFixed(1)} m²)</td></tr>
+<tr><td>Coordinates</td><td>${center ? `${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}` : 'N/A'}</td></tr>
+<tr><td>Vertices</td><td>${vertices.length}</td></tr>
+<tr><td>Created</td><td>${formatDate(farm.createdAt)}</td></tr>
+</table>
+<p class="footer">KhetMap — Free Satellite Field Analysis</p>
+</body></html>`;
+      downloadFile(html, `${farm.name.replace(/\s+/g, '_')}_report.html`, 'text/html');
+      toast.success('Report exported (open in browser, print as PDF)');
     }
+  };
 
+  const downloadFile = (content: string, filename: string, mime: string) => {
     const blob = new Blob([content], { type: mime });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
+    a.href = url; a.download = filename; a.click();
     URL.revokeObjectURL(url);
-    toast.success(t('detail.exported'));
+  };
+
+  // Generate shareable web link
+  const handleShareLink = async () => {
+    if (!farm?.geometry?.vertices) return;
+    const data = {
+      name: farm.name,
+      vertices: farm.geometry.vertices,
+      center: farm.geometry.center,
+      areaHa: farm.areaHa,
+    };
+    const encoded = btoa(JSON.stringify(data));
+    const shareUrl = `${window.location.origin}/map?import=${encoded}`;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success('Share link copied to clipboard!');
+    } catch {
+      toast.error('Could not copy link');
+    }
   };
 
   if (loading) {
-    return (
-      <div className="h-full flex items-center justify-center bg-[#0A1F0A]">
-        <div className="w-8 h-8 border-2 border-[#52B788] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return (<div className="h-full flex items-center justify-center bg-[#F8FAFC]">
+      <div className="w-8 h-8 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
+    </div>);
   }
 
   if (!farm) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center bg-[#0A1F0A] px-6">
-        <AlertTriangle size={40} color="#6B8E6B" />
-        <p className="text-[#E8F5E9] mt-4 text-lg font-semibold">Field not found</p>
-        <button onClick={() => navigate('/farms')} className="mt-4 text-sm text-[#52B788] underline">
-          Back to my fields
-        </button>
-      </div>
-    );
+    return (<div className="h-full flex flex-col items-center justify-center bg-[#F8FAFC] px-6">
+      <AlertTriangle size={40} className="text-[#94A3B8]" />
+      <p className="text-[#1E293B] mt-4 text-lg font-semibold">Field not found</p>
+      <button onClick={() => navigate('/farms')} className="mt-4 text-sm text-[#2563EB] underline">Back to my fields</button>
+    </div>);
   }
 
   const vertices = farm.geometry?.vertices as Array<{ lat: number; lng: number }> | undefined;
   const center = farm.geometry?.center as { lat: number; lng: number } | undefined;
 
   return (
-    <div className="h-full flex flex-col bg-[#0A1F0A] overflow-auto">
+    <div className="h-full flex flex-col bg-[#F8FAFC] overflow-auto">
       {/* Header */}
       <div className="px-5 pt-6 pb-3 flex items-center gap-3">
-        <button
-          onClick={() => navigate('/farms')}
-          className="w-9 h-9 rounded-lg bg-[#0D2818] border border-[#1B4D2E] flex items-center justify-center text-[#A5D6A7] hover:bg-[#1A3A2A] transition-colors"
-        >
+        <button onClick={() => navigate('/farms')}
+          className="w-9 h-9 rounded-lg bg-white border border-[#E2E8F0] flex items-center justify-center text-[#475569] hover:bg-[#F8FAFC] transition-colors shadow-sm">
           <ArrowLeft size={18} />
         </button>
         <div className="flex-1">
           {editingName ? (
             <div className="flex gap-2">
-              <input
-                type="text"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                autoFocus
+              <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)} autoFocus
                 onKeyDown={(e) => e.key === 'Enter' && handleRename()}
-                style={{
-                  background: '#0D2818',
-                  border: '1px solid #52B788',
-                  borderRadius: 8,
-                  padding: '6px 10px',
-                  fontSize: 18,
-                  fontWeight: 700,
-                  color: '#E8F5E9',
-                  outline: 'none',
-                  width: '100%',
-                }}
-              />
-              <button
-                onClick={handleRename}
-                style={{
-                  background: '#52B788',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '6px 12px',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: '#0A1F0A',
-                  cursor: 'pointer',
-                }}
-              >
-                Save
-              </button>
+                className="w-full bg-white border border-[#2563EB] rounded-lg px-3 py-1.5 text-lg font-bold text-[#1E293B] outline-none box-border" />
+              <button onClick={handleRename}
+                className="px-3 py-1.5 bg-[#2563EB] text-white rounded-lg text-xs font-semibold hover:bg-[#1D4ED8] transition-colors">Save</button>
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-[#E8F5E9] truncate">{farm.name}</h1>
-              <button
-                onClick={() => { setNewName(farm.name); setEditingName(true); }}
-                className="text-[#6B8E6B] hover:text-[#52B788] transition-colors"
-              >
+              <h1 className="text-xl font-bold text-[#1E293B] truncate">{farm.name}</h1>
+              <button onClick={() => { setNewName(farm.name); setEditingName(true); }}
+                className="text-[#94A3B8] hover:text-[#2563EB] transition-colors">
                 <Edit3 size={14} />
               </button>
             </div>
           )}
         </div>
-        <button
-          onClick={() => setShowDelete(true)}
-          className="w-9 h-9 rounded-lg bg-[#EF5350]/10 border border-[#EF5350]/30 flex items-center justify-center text-[#EF5350] hover:bg-[#EF5350]/20 transition-colors"
-        >
+        <button onClick={() => setShowDelete(true)}
+          className="w-9 h-9 rounded-lg bg-[#FEF2F2] border border-[#FECACA] flex items-center justify-center text-[#EF4444] hover:bg-[#FEE2E2] transition-colors">
           <Trash2 size={16} />
         </button>
       </div>
@@ -224,172 +219,127 @@ export default function FarmDetail() {
       <div className="px-5 pb-6 space-y-4">
         {/* Stats cards */}
         <div className="grid grid-cols-3 gap-2.5">
-          <div className="bg-[#132A1A] rounded-xl p-3 border border-[#1B4D2E]">
+          <div className="bg-white rounded-xl p-3 border border-[#E2E8F0] shadow-sm">
             <div className="flex items-center gap-1.5 mb-1.5">
-              <Ruler size={12} color="#52B788" />
-              <span className="text-[9px] text-[#6B8E6B] uppercase tracking-wider">{t('detail.area')}</span>
+              <Ruler size={12} className="text-[#2563EB]" />
+              <span className="text-[9px] text-[#64748B] uppercase tracking-wider font-medium">Area</span>
             </div>
-            <p className="text-sm font-bold text-[#52B788]">{formatArea(farm.areaHa)}</p>
+            <p className="text-sm font-bold text-[#2563EB]">{formatArea(farm.areaHa)}</p>
           </div>
-          <div className="bg-[#132A1A] rounded-xl p-3 border border-[#1B4D2E]">
+          <div className="bg-white rounded-xl p-3 border border-[#E2E8F0] shadow-sm">
             <div className="flex items-center gap-1.5 mb-1.5">
-              <Leaf size={12} color="#52B788" />
-              <span className="text-[9px] text-[#6B8E6B] uppercase tracking-wider">{t('detail.crop')}</span>
+              <Leaf size={12} className="text-[#2563EB]" />
+              <span className="text-[9px] text-[#64748B] uppercase tracking-wider font-medium">Crop</span>
             </div>
-            <p className="text-sm font-bold text-[#E8F5E9]">{farm.cropType || t('farms.notset')}</p>
+            <p className="text-sm font-bold text-[#1E293B]">{farm.cropType || 'Not set'}</p>
           </div>
-          <div className="bg-[#132A1A] rounded-xl p-3 border border-[#1B4D2E]">
+          <div className="bg-white rounded-xl p-3 border border-[#E2E8F0] shadow-sm">
             <div className="flex items-center gap-1.5 mb-1.5">
-              <Calendar size={12} color="#52B788" />
-              <span className="text-[9px] text-[#6B8E6B] uppercase tracking-wider">{t('detail.created')}</span>
+              <Calendar size={12} className="text-[#2563EB]" />
+              <span className="text-[9px] text-[#64748B] uppercase tracking-wider font-medium">Created</span>
             </div>
-            <p className="text-sm font-bold text-[#E8F5E9]">{formatDate(farm.createdAt)}</p>
+            <p className="text-sm font-bold text-[#1E293B]">{formatDate(farm.createdAt)}</p>
           </div>
         </div>
 
         {/* Coordinates */}
         {center && (
-          <div className="bg-[#0D2818] rounded-xl p-3 border border-[#1B4D2E] flex items-center gap-3">
-            <MapPin size={16} color="#52B788" />
+          <div className="bg-white rounded-xl p-3 border border-[#E2E8F0] shadow-sm flex items-center gap-3">
+            <MapPin size={16} className="text-[#2563EB]" />
             <div>
-              <p className="text-[10px] text-[#6B8E6B]">{t('detail.coordinates')}</p>
-              <p className="text-xs text-[#E8F5E9] font-mono">
-                {center.lat.toFixed(6)}, {center.lng.toFixed(6)}
-              </p>
+              <p className="text-[10px] text-[#64748B] font-medium">Coordinates</p>
+              <p className="text-xs text-[#1E293B] font-mono">{center.lat.toFixed(6)}, {center.lng.toFixed(6)}</p>
             </div>
           </div>
         )}
 
         {/* Action buttons */}
         <div className="flex gap-2">
-          <button
-            onClick={() => navigate(`/map?focus=${farm.id}`)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-[#52B788] text-[#0A1F0A] rounded-lg text-xs font-semibold hover:bg-[#40916C] transition-colors"
-          >
-            <MapPin size={14} />
-            {t('farms.locate')}
+          <button onClick={() => navigate(`/map?focus=${farm.id}`)}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-[#2563EB] text-white rounded-lg text-xs font-semibold hover:bg-[#1D4ED8] transition-colors shadow-sm">
+            <MapPin size={14} /> Locate on Map
           </button>
-          <button
-            onClick={() => navigate(`/map?analysis=ndvi&focus=${farm.id}`)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-[#52B788]/10 text-[#52B788] rounded-lg text-xs font-semibold hover:bg-[#52B788]/20 transition-colors"
-          >
-            <Globe size={14} />
-            {t('farms.analyze')}
+          <button onClick={() => navigate(`/map?analysis=ndvi&focus=${farm.id}`)}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-[#EFF6FF] text-[#2563EB] rounded-lg text-xs font-semibold hover:bg-[#DBEAFE] transition-colors">
+            <Globe size={14} /> Analyze NDVI
           </button>
         </div>
 
-        {/* NDVI History Chart */}
+        {/* NDVI History */}
         {vertices && vertices.length >= 3 && (
           <NDVIHistoryChart fieldName={farm.name} />
         )}
 
         {/* Notes */}
         <div>
-          <label className="text-[10px] font-semibold text-[#6B8E6B] tracking-widest uppercase mb-2 block">
-            {t('detail.notes')}
-          </label>
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder={t('detail.placeholder')}
+          <label className="text-[10px] font-semibold text-[#94A3B8] tracking-widest uppercase mb-2 block">Notes</label>
+          <textarea value={note} onChange={(e) => setNote(e.target.value)}
+            placeholder="Add a note about this field..."
             rows={3}
-            style={{
-              width: '100%',
-              background: '#0D2818',
-              border: '1px solid #1B4D2E',
-              borderRadius: 10,
-              padding: 12,
-              fontSize: 13,
-              color: '#E8F5E9',
-              outline: 'none',
-              resize: 'vertical',
-              fontFamily: 'inherit',
-              boxSizing: 'border-box',
-            }}
-          />
+            className="w-full bg-white border border-[#E2E8F0] rounded-xl p-3 text-sm text-[#1E293B] outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]/20 transition-all resize-vertical font-inherit box-border" />
           {note && (
-            <button
-              onClick={handleSaveNote}
-              disabled={saving}
-              style={{
-                marginTop: 8,
-                padding: '8px 16px',
-                borderRadius: 8,
-                border: 'none',
-                background: '#52B788',
-                color: '#0A1F0A',
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-                opacity: saving ? 0.6 : 1,
-              }}
-            >
-              {saving ? t('common.saving') : t('detail.savenote')}
+            <button onClick={handleSaveNote} disabled={saving}
+              className={`mt-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+                saving ? 'bg-[#E2E8F0] text-[#94A3B8]' : 'bg-[#2563EB] text-white hover:bg-[#1D4ED8]'
+              }`}>
+              {saving ? 'Saving...' : 'Save Note'}
             </button>
           )}
         </div>
 
         {/* Export */}
         <div>
-          <label className="text-[10px] font-semibold text-[#6B8E6B] tracking-widest uppercase mb-2 block">
-            Export
-          </label>
-          <div className="flex gap-2">
+          <label className="text-[10px] font-semibold text-[#94A3B8] tracking-widest uppercase mb-2 block">Export</label>
+          <div className="flex flex-wrap gap-2">
             {[
-              { format: 'geojson' as const, label: 'GeoJSON', icon: FileDown },
-              { format: 'kml' as const, label: 'KML', icon: Globe },
-              { format: 'csv' as const, label: 'CSV', icon: Download },
+              { format: 'geojson', label: 'GeoJSON', icon: FileDown },
+              { format: 'kml', label: 'KML', icon: Globe },
+              { format: 'csv', label: 'CSV', icon: Download },
+              { format: 'report', label: 'Report (PDF)', icon: FileDown },
             ].map(({ format, label, icon: Icon }) => (
-              <button
-                key={format}
-                onClick={() => handleExport(format)}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-[#0D2818] border border-[#1B4D2E] rounded-lg text-xs text-[#A5D6A7] hover:bg-[#1A3A2A] transition-colors"
-              >
-                <Icon size={14} />
-                {label}
+              <button key={format} onClick={() => handleExport(format)}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-[#E2E8F0] rounded-lg text-xs text-[#475569] hover:bg-[#F8FAFC] hover:border-[#93C5FD] transition-all shadow-sm">
+                <Icon size={14} /> {label}
               </button>
             ))}
+            <button onClick={handleShareLink}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 bg-white border border-[#E2E8F0] rounded-lg text-xs text-[#475569] hover:bg-[#F8FAFC] hover:border-[#93C5FD] transition-all shadow-sm">
+              🔗 Share Link
+            </button>
           </div>
         </div>
+
+        {/* Vertices info */}
+        {vertices && (
+          <div className="bg-[#F8FAFC] rounded-xl p-3 border border-[#E2E8F0]">
+            <p className="text-[10px] text-[#64748B] font-medium">Field Vertices ({vertices.length})</p>
+            <div className="mt-1.5 grid grid-cols-2 gap-1 max-h-32 overflow-auto">
+              {vertices.map((v, i) => (
+                <span key={i} className="text-[10px] text-[#475569] font-mono">
+                  {i + 1}: {v.lat.toFixed(6)}, {v.lng.toFixed(6)}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Delete confirmation modal */}
+      {/* Delete confirmation */}
       {showDelete && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 2000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
-        }}>
-          <div style={{
-            background: '#132A1A', borderRadius: 16,
-            border: '1px solid #EF5350/30',
-            width: '85%', maxWidth: 320,
-            padding: 24, boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-          }}>
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/30 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] w-[85%] max-w-[320px] p-6 shadow-2xl">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-[#EF5350]/15 flex items-center justify-center">
-                <AlertTriangle size={20} color="#EF5350" />
+              <div className="w-10 h-10 rounded-full bg-[#FEF2F2] flex items-center justify-center">
+                <AlertTriangle size={20} className="text-[#EF4444]" />
               </div>
-              <h3 className="text-lg font-bold text-[#E8F5E9]" style={{ margin: 0 }}>
-                Delete "{farm.name}"?
-              </h3>
+              <h3 className="text-lg font-bold text-[#1E293B]">Delete "{farm.name}"?</h3>
             </div>
-            <p className="text-sm text-[#6B8E6B] mb-6" style={{ margin: '0 0 20px' }}>
-              This will permanently delete this field and all its analysis data.
-            </p>
+            <p className="text-sm text-[#64748B] mb-6">This will permanently delete this field and all its data.</p>
             <div className="flex gap-2">
-              <button
-                onClick={() => setShowDelete(false)}
-                className="flex-1 py-3 rounded-xl border border-[#1B4D2E] bg-[#0D2818] text-[#E8F5E9] text-sm font-medium cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                className="flex-1 py-3 rounded-xl border-none bg-[#EF5350] text-white text-sm font-semibold cursor-pointer"
-              >
-                Delete
-              </button>
+              <button onClick={() => setShowDelete(false)}
+                className="flex-1 py-3 rounded-xl border border-[#E2E8F0] bg-white text-[#475569] text-sm font-medium hover:bg-[#F8FAFC] transition-colors">Cancel</button>
+              <button onClick={handleDelete}
+                className="flex-1 py-3 rounded-xl bg-[#EF4444] text-white text-sm font-semibold hover:bg-[#DC2626] transition-colors">Delete</button>
             </div>
           </div>
         </div>

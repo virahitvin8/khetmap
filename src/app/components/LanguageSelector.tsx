@@ -7,102 +7,41 @@ const languages: { code: SupportedLanguage; label: string; native: string; flag:
   { code: 'hi', label: 'Hindi', native: 'हिंदी', flag: '🇮🇳' },
 ];
 
-interface LanguageSelectorProps {
-  onClose: () => void;
-}
+interface LanguageSelectorProps { onClose: () => void; }
 
 export default function LanguageSelector({ onClose }: LanguageSelectorProps) {
   const { lang, setLang } = useLanguage();
 
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      zIndex: 2000,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'rgba(0,0,0,0.6)',
-      backdropFilter: 'blur(4px)',
-    }}>
-      <div style={{
-        background: '#132A1A',
-        borderRadius: 16,
-        border: '1px solid #1B4D2E',
-        width: '85%',
-        maxWidth: 320,
-        boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-        padding: 24,
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#E8F5E9' }}>
-            Choose Language
-          </h2>
-          <button
-            onClick={onClose}
-            style={{
-              width: 32, height: 32,
-              borderRadius: 8,
-              border: '1px solid #1B4D2E',
-              background: '#0D2818',
-              color: '#6B8E6B',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <X size={16} />
-          </button>
+    <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/30 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl border border-[#E2E8F0] w-[85%] max-w-[320px] shadow-2xl p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-bold text-[#1E293B] m-0">Choose Language</h2>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg border border-[#E2E8F0] bg-white text-[#94A3B8] flex items-center justify-center hover:bg-[#F8FAFC]"><X size={16} /></button>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div className="flex flex-col gap-1.5">
           {languages.map((langOption) => {
             const isActive = lang === langOption.code;
             return (
-              <button
-                key={langOption.code}
-                onClick={() => {
-                  setLang(langOption.code);
-                  onClose();
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 14,
-                  padding: '14px 16px',
-                  borderRadius: 12,
-                  border: `1px solid ${isActive ? '#52B788' : '#1B4D2E'}`,
-                  background: isActive ? 'rgba(82,183,136,0.1)' : '#0D2818',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  width: '100%',
-                  textAlign: 'left',
-                }}
-              >
-                <span style={{ fontSize: 24 }}>{langOption.flag}</span>
-                <div style={{ flex: 1 }}>
-                  <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: isActive ? '#52B788' : '#E8F5E9' }}>
-                    {langOption.label}
-                  </p>
-                  <p style={{ margin: '2px 0 0', fontSize: 12, color: '#6B8E6B' }}>
-                    {langOption.native}
-                  </p>
+              <button key={langOption.code} onClick={() => { setLang(langOption.code); onClose(); }}
+                className={`flex items-center gap-3.5 px-4 py-3.5 rounded-xl border transition-all w-full text-left ${
+                  isActive
+                    ? 'bg-[#EFF6FF] border-[#2563EB]'
+                    : 'bg-white border-[#E2E8F0] hover:border-[#93C5FD]'
+                }`}>
+                <span className="text-2xl">{langOption.flag}</span>
+                <div className="flex-1">
+                  <p className={`text-sm font-semibold m-0 ${isActive ? 'text-[#2563EB]' : 'text-[#1E293B]'}`}>{langOption.label}</p>
+                  <p className="text-xs text-[#64748B] m-1">{langOption.native}</p>
                 </div>
-                {isActive && <Check size={18} color="#52B788" />}
+                {isActive && <Check size={18} className="text-[#2563EB]" />}
               </button>
             );
           })}
         </div>
 
-        <p style={{
-          margin: '16px 0 0',
-          fontSize: 10,
-          color: '#6B8E6B',
-          textAlign: 'center',
-        }}>
-          తెలుగు · हिंदी · English
-        </p>
+        <p className="text-[10px] text-[#94A3B8] text-center mt-4">తెలుగు · हिंदी · English</p>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useMap, useMapEvents, FeatureGroup } from 'react-leaflet';
+import { useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 
 interface Vertex {
@@ -13,40 +13,49 @@ interface DrawFieldControlProps {
   onCancel: () => void;
 }
 
-// Custom marker for vertices
 const vertexIcon = new L.DivIcon({
   className: 'vertex-marker',
-  html: `<div style="
-    width: 10px; height: 10px;
-    background: #52B788;
-    border: 2px solid white;
-    border-radius: 50%;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.4);
-  "></div>`,
+  html: `<div style="width:10px;height:10px;background:#2563EB;border:2px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></div>`,
   iconSize: [10, 10],
   iconAnchor: [5, 5],
 });
 
-// Close-polygon button icon
-const closeIcon = new L.DivIcon({
-  className: 'close-vertex-marker',
-  html: `<div style="
-    width: 16px; height: 16px;
-    background: #EF5350;
-    border: 2px solid white;
-    border-radius: 50%;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    color: white;
-    font-weight: bold;
-    cursor: pointer;
-  ">✓</div>`,
-  iconSize: [16, 16],
-  iconAnchor: [8, 8],
-});
+// Calculate polygon centroid
+export function getCentroid(vertices: Vertex[]): Vertex {
+  let lat = 0, lng = 0;
+  for (const v of vertices) { lat += v.lat; lng += v.lng; }
+  return { lat: lat / vertices.length, lng: lng / vertices.length };
+}
+
+// Calculate area using Shoelace formula (returns hectares)
+export function calculateArea(vertices: Vertex[]): number {
+  if (vertices.length < 3) return 0;
+  const radLatLngs = vertices.map(v => ({
+    lat: v.lat * Math.PI / 180,
+    lng: v.lng * Math.PI / 180,
+  }));
+  const R = 6371000;
+  let area = 0;
+  for (let i = 0; i < radLatLngs.length; i++) {
+    const j = (i + 1) % radLatLngs.length;
+    area += radLatLngs[i].lng * radLatLngs[j].lat - radLatLngs[j].lng * radLatLngs[i].lat;
+  }
+  return Math.abs(area) * R * R / 2 / 10000;
+}
+
+// Format area in all units
+export function formatAreaAllUnits(ha: number): string {
+  const sqm = ha * 10000;
+  const acres = ha * 2.47105;
+  const sqkm = ha / 100;
+  return `${sqm.toFixed(1)} m² | ${ha.toFixed(4)} ha | ${acres.toFixed(4)} ac | ${sqkm.toFixed(6)} km²`;
+}
+
+export function formatAreaShort(ha: number): string {
+  if (ha < 0.001) return `${(ha * 10000).toFixed(1)} m²`;
+  if (ha < 1) return `${(ha * 100).toFixed(2)} cent`;
+  return `${ha.toFixed(4)} ha`;
+}
 
 function DrawingUI({ isActive, onPolygonComplete, onCancel }: DrawFieldControlProps) {
   const map = useMap();
@@ -56,11 +65,8 @@ function DrawingUI({ isActive, onPolygonComplete, onCancel }: DrawFieldControlPr
   const [lineLayer, setLineLayer] = useState<L.Polyline | null>(null);
   const vertexRef = useRef<Vertex[]>([]);
 
-  // Reset when deactivated
   useEffect(() => {
-    if (!isActive) {
-      clearDrawing();
-    }
+    if (!isActive) { clearDrawing(); }
   }, [isActive]);
 
   const clearDrawing = useCallback(() => {
@@ -80,16 +86,14 @@ function DrawingUI({ isActive, onPolygonComplete, onCancel }: DrawFieldControlPr
     vertexRef.current = newVertices;
     setVertices(newVertices);
 
-    // Add marker
     const marker = L.marker([latlng.lat, latlng.lng], { icon: vertexIcon }).addTo(map);
     setMarkerLayers(prev => [...prev, marker]);
 
-    // Update line
     if (newVertices.length >= 2) {
       lineLayer?.remove();
       const latlngs = newVertices.map(v => [v.lat, v.lng] as [number, number]);
       const line = L.polyline(latlngs, {
-        color: '#52B788',
+        color: '#2563EB',
         weight: 3,
         opacity: 0.8,
         dashArray: '8, 4',
@@ -102,32 +106,27 @@ function DrawingUI({ isActive, onPolygonComplete, onCancel }: DrawFieldControlPr
     const v = vertexRef.current;
     if (v.length < 3) return;
 
-    // Remove line and markers
     lineLayer?.remove();
     markerLayers.forEach(m => m.remove());
 
-    // Create polygon
     const latlngs = v.map(vtx => [vtx.lat, vtx.lng] as [number, number]);
     const polygon = L.polygon(latlngs, {
-      color: '#52B788',
+      color: '#2563EB',
       weight: 2,
-      fillColor: '#52B788',
-      fillOpacity: 0.15,
+      fillColor: '#2563EB',
+      fillOpacity: 0.12,
     }).addTo(map);
 
     setPolygonLayer(polygon);
     setMarkerLayers([]);
     setLineLayer(null);
 
-    // Add centroid marker
     const centroid = getCentroid(v);
     map.flyTo([centroid.lat, centroid.lng], map.getZoom());
 
-    // Notify parent
     onPolygonComplete(v);
   }, [map, lineLayer, markerLayers, onPolygonComplete]);
 
-  // Map click events
   useMapEvents({
     click(e) {
       if (!isActive) return;
@@ -136,13 +135,10 @@ function DrawingUI({ isActive, onPolygonComplete, onCancel }: DrawFieldControlPr
     dblclick(e) {
       if (!isActive) return;
       e.originalEvent.preventDefault();
-      if (vertices.length >= 3) {
-        completePolygon();
-      }
+      if (vertices.length >= 3) { completePolygon(); }
     },
     mousemove(e) {
       if (!isActive || vertices.length === 0) return;
-      // Update preview line to show where the next vertex would go
       lineLayer?.setLatLngs([
         ...vertices.map(v => [v.lat, v.lng] as [number, number]),
         [e.latlng.lat, e.latlng.lng],
@@ -152,102 +148,38 @@ function DrawingUI({ isActive, onPolygonComplete, onCancel }: DrawFieldControlPr
 
   if (!isActive) return null;
 
+  const area = vertices.length >= 3 ? calculateArea(vertices) : 0;
+
   return (
-    <div style={{
-      position: 'absolute',
-      top: 12,
-      left: '50%',
-      transform: 'translateX(-50%)',
-      zIndex: 1000,
-      display: 'flex',
-      gap: 8,
-      alignItems: 'center',
-    }}>
-      <div style={{
-        background: 'rgba(13,40,24,0.95)',
-        border: '1px solid #52B788',
-        borderRadius: 10,
-        padding: '8px 16px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        backdropFilter: 'blur(8px)',
-      }}>
-        <span style={{ color: '#A5D6A7', fontSize: 12 }}>
-          {vertices.length === 0 
-            ? '🖱️ Click on map to start drawing'
-            : `📍 ${vertices.length} vertices — double-click to close`}
+    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000]">
+      <div className="bg-white rounded-xl px-4 py-2.5 border border-[#E2E8F0] shadow-lg flex items-center gap-3">
+        <span className="text-xs text-[#64748B]">
+          {vertices.length === 0
+            ? '🖱️ Click on map to draw'
+            : `📍 ${vertices.length} vertices`}
         </span>
+        {area > 0 && (
+          <span className="text-xs font-semibold text-[#2563EB] whitespace-nowrap">
+            {formatAreaShort(area)}
+          </span>
+        )}
         {vertices.length >= 3 && (
           <button
             onClick={completePolygon}
-            style={{
-              background: '#52B788',
-              color: '#0A1F0A',
-              border: 'none',
-              borderRadius: 6,
-              padding: '4px 12px',
-              fontSize: 11,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
+            className="px-3 py-1 bg-[#2563EB] text-white rounded-lg text-xs font-semibold hover:bg-[#1D4ED8] transition-colors"
           >
             ✓ Finish
           </button>
         )}
         <button
           onClick={() => { clearDrawing(); onCancel(); }}
-          style={{
-            background: 'rgba(239,83,80,0.2)',
-            color: '#EF5350',
-            border: '1px solid rgba(239,83,80,0.3)',
-            borderRadius: 6,
-            padding: '4px 10px',
-            fontSize: 11,
-            cursor: 'pointer',
-          }}
+          className="text-xs text-[#EF4444] hover:text-[#DC2626] font-medium"
         >
-          ✕ Cancel
+          Cancel
         </button>
       </div>
     </div>
   );
-}
-
-// Calculate polygon centroid
-export function getCentroid(vertices: Vertex[]): Vertex {
-  let lat = 0, lng = 0;
-  for (const v of vertices) {
-    lat += v.lat;
-    lng += v.lng;
-  }
-  return { lat: lat / vertices.length, lng: lng / vertices.length };
-}
-
-// Calculate area using Shoelace formula (returns hectares)
-export function calculateArea(vertices: Vertex[]): number {
-  if (vertices.length < 3) return 0;
-  
-  // Convert to radians
-  const radLatLngs = vertices.map(v => ({
-    lat: v.lat * Math.PI / 180,
-    lng: v.lng * Math.PI / 180,
-  }));
-
-  const R = 6371000; // Earth's radius in meters
-  let area = 0;
-
-  for (let i = 0; i < radLatLngs.length; i++) {
-    const j = (i + 1) % radLatLngs.length;
-    const xi = radLatLngs[i].lng;
-    const yi = radLatLngs[i].lat;
-    const xj = radLatLngs[j].lng;
-    const yj = radLatLngs[j].lat;
-    area += xi * yj - xj * yi;
-  }
-
-  area = Math.abs(area) * R * R / 2; // Area in m²
-  return area / 10000; // Convert to hectares
 }
 
 export default DrawingUI;

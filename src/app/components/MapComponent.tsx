@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
-import { MapContainer, TileLayer, useMap, useMapEvents, Marker, Popup, ZoomControl, Polygon } from 'react-leaflet';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { MapContainer, TileLayer, useMap, useMapEvents, Marker, Popup, ZoomControl, Polygon, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import DrawingUI from './DrawFieldControl';
@@ -14,7 +14,7 @@ import WeatherForecast from './WeatherForecast';
 import LocationSearch from './LocationSearch';
 import { POLYGON_COLORS } from '../../constants/map';
 
-// Fix Leaflet default marker icon issue
+// Fix Leaflet default marker icon
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
@@ -22,32 +22,18 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
-// Custom marker icon for selected location
 const selectedIcon = new L.DivIcon({
   className: 'custom-marker',
-  html: `<div style="
-    width: 24px; height: 24px; 
-    background: #52B788; 
-    border: 3px solid white; 
-    border-radius: 50%; 
-    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-  "></div>`,
-  iconSize: [24, 24],
-  iconAnchor: [12, 12],
+  html: `<div style="width:20px;height:20px;background:#2563EB;border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>`,
+  iconSize: [20, 20],
+  iconAnchor: [10, 10],
 });
 
-// Farm marker icon
 const farmIcon = new L.DivIcon({
   className: 'farm-marker',
-  html: `<div style="
-    width: 16px; height: 16px; 
-    background: #2D6A4F; 
-    border: 2px solid #95D5B2; 
-    border-radius: 50%;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-  "></div>`,
-  iconSize: [16, 16],
-  iconAnchor: [8, 8],
+  html: `<div style="width:14px;height:14px;background:#3B82F6;border:2px solid #93C5FD;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.2);"></div>`,
+  iconSize: [14, 14],
+  iconAnchor: [7, 7],
 });
 
 const DEFAULT_CENTER: [number, number] = [17.385, 78.4867];
@@ -73,6 +59,9 @@ interface MapComponentProps {
   isDrawing?: boolean;
   onPolygonCreated?: (vertices: Vertex[]) => void;
   onDrawingCancel?: () => void;
+  isMeasuring?: boolean;
+  onMeasurementComplete?: (vertices: Vertex[]) => void;
+  onMeasureCancel?: () => void;
   showNDVI?: boolean;
   onNDVIToggle?: () => void;
   showNDWI?: boolean;
@@ -97,190 +86,203 @@ function MapEvents({ onLocationSelect }: { onLocationSelect?: (lat: number, lng:
   return null;
 }
 
+function MeasureControl({
+  isActive,
+  onComplete,
+  onCancel,
+}: {
+  isActive: boolean;
+  onComplete: (vertices: Vertex[]) => void;
+  onCancel: () => void;
+}) {
+  const map = useMap();
+  const verticesRef = useRef<Vertex[]>([]);
+  const [vertices, setVertices] = useState<Vertex[]>([]);
+  const [line, setLine] = useState<L.Polyline | null>(null);
+  const [markers, setMarkers] = useState<L.Marker[]>([]);
+  const [polygon, setPolygon] = useState<L.Polygon | null>(null);
+
+  const clearAll = useCallback(() => {
+    markers.forEach(m => m.remove());
+    line?.remove();
+    polygon?.remove();
+    setMarkers([]);
+    setLine(null);
+    setPolygon(null);
+    setVertices([]);
+    verticesRef.current = [];
+  }, [markers, line, polygon]);
+
+  useEffect(() => {
+    if (!isActive) {
+      clearAll();
+    }
+  }, [isActive]);
+
+  const addVertex = useCallback((latlng: L.LatLng) => {
+    const newV = { lat: latlng.lat, lng: latlng.lng };
+    const newVertices = [...verticesRef.current, newV];
+    verticesRef.current = newVertices;
+    setVertices(newVertices);
+
+    const marker = L.marker([latlng.lat, latlng.lng], {
+      icon: new L.DivIcon({
+        className: 'measure-vertex',
+        html: `<div style="width:8px;height:8px;background:#2563EB;border:2px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></div>`,
+        iconSize: [8, 8],
+        iconAnchor: [4, 4],
+      }),
+    }).addTo(map);
+
+    setMarkers(prev => [...prev, marker]);
+
+    if (newVertices.length >= 2) {
+      line?.remove();
+      const latlngs = newVertices.map(v => [v.lat, v.lng] as [number, number]);
+      const l = L.polyline(latlngs, {
+        color: '#2563EB',
+        weight: 2,
+        opacity: 0.7,
+        dashArray: '6, 3',
+      }).addTo(map);
+      setLine(l);
+    }
+
+    if (newVertices.length >= 3) {
+      polygon?.remove();
+      const latlngs = newVertices.map(v => [v.lat, v.lng] as [number, number]);
+      const p = L.polygon(latlngs, {
+        color: '#2563EB',
+        weight: 1.5,
+        fillColor: '#2563EB',
+        fillOpacity: 0.08,
+      }).addTo(map);
+      setPolygon(p);
+    }
+  }, [map, line, polygon]);
+
+  useMapEvents({
+    click(e) {
+      if (!isActive) return;
+      addVertex(e.latlng);
+    },
+    dblclick(e) {
+      if (!isActive) return;
+      e.originalEvent.preventDefault();
+      if (verticesRef.current.length >= 3) {
+        clearAll();
+        onComplete(verticesRef.current);
+      }
+    },
+    mousemove(e) {
+      if (!isActive || vertices.length === 0) return;
+      const allPoints = [...vertices.map(v => [v.lat, v.lng] as [number, number]), [e.latlng.lat, e.latlng.lng]];
+      line?.setLatLngs(allPoints);
+    },
+  });
+
+  if (!isActive) return null;
+
+  return (
+    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000]">
+      <div className="bg-white rounded-lg px-4 py-2.5 border border-[#E2E8F0] shadow-lg flex items-center gap-3">
+        <span className="text-xs text-[#64748B]">
+          {vertices.length === 0
+            ? '📏 Click to measure'
+            : `📍 ${vertices.length} points — double-click to close`}
+        </span>
+        {vertices.length >= 3 && (
+          <span className="text-xs font-semibold text-[#2563EB]">
+            {calculateMeasureArea(vertices)}
+          </span>
+        )}
+        <button
+          onClick={() => { clearAll(); onCancel(); }}
+          className="text-xs text-[#EF4444] hover:text-[#DC2626] font-medium"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function calculateMeasureArea(vertices: Vertex[]): string {
+  if (vertices.length < 3) return '';
+  const ha = calculateAreaValue(vertices);
+  if (ha < 0.001) return `${(ha * 10000).toFixed(1)} m²`;
+  if (ha < 1) return `${(ha * 100).toFixed(2)} cent`;
+  return `${ha.toFixed(4)} ha`;
+}
+
+function calculateAreaValue(vertices: Vertex[]): number {
+  if (vertices.length < 3) return 0;
+  const rad = vertices.map(v => ({
+    lat: v.lat * Math.PI / 180,
+    lng: v.lng * Math.PI / 180,
+  }));
+  const R = 6371000;
+  let area = 0;
+  for (let i = 0; i < rad.length; i++) {
+    const j = (i + 1) % rad.length;
+    area += rad[i].lng * rad[j].lat - rad[j].lng * rad[i].lat;
+  }
+  return Math.abs(area) * R * R / 2 / 10000;
+}
+
 function LayerControl({
   activeLayer,
   onLayerChange,
-  showNDVI,
-  onNDVIToggle,
-  showNDWI,
-  onNDWIToggle,
-  showSAVI,
-  onSAVIToggle,
-  showSearch,
-  onSearchToggle,
-  showWeather,
-  onWeatherToggle,
+  showNDVI, onNDVIToggle,
+  showNDWI, onNDWIToggle,
+  showSAVI, onSAVIToggle,
+  showSearch, onSearchToggle,
+  showWeather, onWeatherToggle,
 }: {
   activeLayer: 'satellite' | 'street';
   onLayerChange: (layer: 'satellite' | 'street') => void;
-  showNDVI?: boolean;
-  onNDVIToggle?: () => void;
-  showNDWI?: boolean;
-  onNDWIToggle?: () => void;
-  showSAVI?: boolean;
-  onSAVIToggle?: () => void;
-  showSearch?: boolean;
-  onSearchToggle?: () => void;
-  showWeather?: boolean;
-  onWeatherToggle?: () => void;
+  showNDVI?: boolean; onNDVIToggle?: () => void;
+  showNDWI?: boolean; onNDWIToggle?: () => void;
+  showSAVI?: boolean; onSAVIToggle?: () => void;
+  showSearch?: boolean; onSearchToggle?: () => void;
+  showWeather?: boolean; onWeatherToggle?: () => void;
 }) {
-  const layers = [
-    { id: 'satellite' as const, icon: '🛰️', title: 'Satellite view' },
-    { id: 'street' as const, icon: '🗺️', title: 'Street map' },
-  ];
-
   return (
-    <div style={{
-      position: 'absolute',
-      top: 70,
-      right: 12,
-      zIndex: 1000,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 4,
-    }}>
-      {layers.map((layer) => (
-        <button
-          key={layer.id}
-          onClick={() => onLayerChange(layer.id)}
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 8,
-            border: `2px solid ${activeLayer === layer.id ? '#52B788' : '#1B4D2E'}`,
-            background: activeLayer === layer.id ? '#1A3A2A' : '#0D2818',
-            color: '#E8F5E9',
-            cursor: 'pointer',
-            fontSize: 16,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.2s',
-            backdropFilter: 'blur(8px)',
-          }}
-          title={layer.title}
-        >
+    <div className="absolute top-4 right-3 z-[1000] flex flex-col gap-1.5">
+      {[
+        { id: 'satellite' as const, icon: '🛰️', active: activeLayer === 'satellite' },
+        { id: 'street' as const, icon: '🗺️', active: activeLayer === 'street' },
+      ].map(layer => (
+        <button key={layer.id} onClick={() => onLayerChange(layer.id)}
+          className={`w-9 h-9 rounded-lg border flex items-center justify-center text-sm transition-all shadow-sm backdrop-blur-sm ${
+            layer.active
+              ? 'bg-[#2563EB] border-[#2563EB] text-white shadow-blue-500/20'
+              : 'bg-white border-[#E2E8F0] text-[#64748B] hover:bg-[#F8FAFC]'
+          }`}>
           {layer.icon}
         </button>
       ))}
-
-      {/* Search toggle */}
-      <button
-        onClick={onSearchToggle}
-        title="Search location"
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 8,
-          border: `2px solid ${showSearch ? '#52B788' : '#1B4D2E'}`,
-          background: showSearch ? '#1A3A2A' : '#0D2818',
-          color: '#E8F5E9',
-          cursor: 'pointer',
-          fontSize: 14,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'all 0.2s',
-          backdropFilter: 'blur(8px)',
-          marginTop: 4,
-        }}
-      >
-        🔍
-      </button>
-
-      {/* NDVI toggle */}
-      <button
-        onClick={onNDVIToggle}
-        title={`${showNDVI ? 'Hide' : 'Show'} NDVI overlay`}
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 8,
-          border: `2px solid ${showNDVI ? '#66BB6A' : '#1B4D2E'}`,
-          background: showNDVI ? 'rgba(102, 187, 106, 0.2)' : '#0D2818',
-          color: '#E8F5E9',
-          cursor: 'pointer',
-          fontSize: 14,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'all 0.2s',
-          backdropFilter: 'blur(8px)',
-        }}
-      >
-        🌿
-      </button>
-
-      {/* NDWI toggle */}
-      <button
-        onClick={onNDWIToggle}
-        title={`${showNDWI ? 'Hide' : 'Show'} Water Index`}
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 8,
-          border: `2px solid ${showNDWI ? '#42A5F5' : '#1B4D2E'}`,
-          background: showNDWI ? 'rgba(66, 165, 245, 0.2)' : '#0D2818',
-          color: '#E8F5E9',
-          cursor: 'pointer',
-          fontSize: 14,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'all 0.2s',
-          backdropFilter: 'blur(8px)',
-        }}
-      >
-        💧
-      </button>
-
-      {/* SAVI toggle */}
-      <button
-        onClick={onSAVIToggle}
-        title={`${showSAVI ? 'Hide' : 'Show'} SAVI overlay`}
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 8,
-          border: `2px solid ${showSAVI ? '#FFA726' : '#1B4D2E'}`,
-          background: showSAVI ? 'rgba(255, 167, 38, 0.2)' : '#0D2818',
-          color: '#E8F5E9',
-          cursor: 'pointer',
-          fontSize: 14,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'all 0.2s',
-          backdropFilter: 'blur(8px)',
-        }}
-      >
-        🪨
-      </button>
-
-      {/* Weather toggle */}
-      <button
-        onClick={onWeatherToggle}
-        title={`${showWeather ? 'Hide' : 'Show'} Weather`}
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 8,
-          border: `2px solid ${showWeather ? '#FFD54F' : '#1B4D2E'}`,
-          background: showWeather ? 'rgba(255, 213, 79, 0.2)' : '#0D2818',
-          color: '#E8F5E9',
-          cursor: 'pointer',
-          fontSize: 14,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'all 0.2s',
-          backdropFilter: 'blur(8px)',
-          marginTop: 4,
-        }}
-      >
-        🌤️
-      </button>
+      <div className="h-px bg-[#E2E8F0] my-0.5" />
+      <MapToggleBtn icon="🔍" active={showSearch} onClick={onSearchToggle} />
+      <MapToggleBtn icon="🌿" active={showNDVI} onClick={onNDVIToggle} color="#22C55E" />
+      <MapToggleBtn icon="💧" active={showNDWI} onClick={onNDWIToggle} color="#3B82F6" />
+      <MapToggleBtn icon="🪨" active={showSAVI} onClick={onSAVIToggle} color="#F59E0B" />
+      <MapToggleBtn icon="🌤️" active={showWeather} onClick={onWeatherToggle} color="#EAB308" />
     </div>
+  );
+}
+
+function MapToggleBtn({ icon, active, onClick, color }: { icon: string; active?: boolean; onClick?: () => void; color?: string }) {
+  return (
+    <button onClick={onClick}
+      className={`w-9 h-9 rounded-lg border flex items-center justify-center text-sm transition-all shadow-sm backdrop-blur-sm ${
+        active
+          ? 'bg-white border-[#2563EB] shadow-blue-500/10'
+          : 'bg-white border-[#E2E8F0] text-[#64748B] hover:bg-[#F8FAFC]'
+      }`}
+      style={active && color ? { borderColor: color, boxShadow: `0 0 0 1px ${color}20` } : undefined}>
+      {icon}
+    </button>
   );
 }
 
@@ -293,7 +295,7 @@ function MyLocationButton() {
     setIsLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        map.flyTo([pos.coords.latitude, pos.coords.longitude], 15, { duration: 1.5 });
+        map.flyTo([pos.coords.latitude, pos.coords.longitude], 16, { duration: 1.5 });
         setIsLocating(false);
       },
       () => setIsLocating(false),
@@ -302,42 +304,14 @@ function MyLocationButton() {
   }, [map]);
 
   return (
-    <button
-      onClick={handleLocate}
-      disabled={isLocating}
-      style={{
-        position: 'absolute',
-        bottom: 24,
-        right: 12,
-        zIndex: 1000,
-        width: 40,
-        height: 40,
-        borderRadius: 8,
-        border: '2px solid #1B4D2E',
-        background: '#0D2818',
-        color: '#E8F5E9',
-        cursor: 'pointer',
-        fontSize: 18,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        opacity: isLocating ? 0.6 : 1,
-        backdropFilter: 'blur(8px)',
-        transition: 'all 0.2s',
-      }}
-      title="My Location"
-    >
+    <button onClick={handleLocate} disabled={isLocating}
+      className="absolute bottom-6 right-3 z-[1000] w-9 h-9 rounded-lg bg-white border border-[#E2E8F0] flex items-center justify-center shadow-sm hover:bg-[#F8FAFC] transition-all disabled:opacity-50"
+      title="My Location">
       {isLocating ? (
-        <div style={{
-          width: 16, height: 16,
-          border: '2px solid #52B788',
-          borderTopColor: 'transparent',
-          borderRadius: '50%',
-          animation: 'spin 0.8s linear infinite',
-        }} />
+        <div className="w-4 h-4 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
       ) : (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <circle cx="12" cy="12" r="3" fill="#52B788" stroke="#52B788" />
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2.5">
+          <circle cx="12" cy="12" r="3" fill="#2563EB" />
           <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
         </svg>
       )}
@@ -360,26 +334,12 @@ function InitialZoom() {
 }
 
 export default function MapComponent({
-  onLocationSelect,
-  selectedLocation,
-  farms = [],
-  farmPolygons = [],
-  isDrawing = false,
-  onPolygonCreated,
-  onDrawingCancel,
-  showNDVI = false,
-  onNDVIToggle,
-  showNDWI = false,
-  onNDWIToggle,
-  showSAVI = false,
-  onSAVIToggle,
-  showSearch = false,
-  onSearchToggle,
-  showWeather = false,
-  onWeatherToggle,
-  weatherLocation = null,
-  onCloseWeather,
-  className = '',
+  onLocationSelect, selectedLocation, farms = [], farmPolygons = [],
+  isDrawing = false, onPolygonCreated, onDrawingCancel,
+  isMeasuring = false, onMeasurementComplete, onMeasureCancel,
+  showNDVI = false, onNDVIToggle, showNDWI = false, onNDWIToggle,
+  showSAVI = false, onSAVIToggle, showSearch = false, onSearchToggle,
+  showWeather = false, onWeatherToggle, weatherLocation = null, onCloseWeather, className = '',
 }: MapComponentProps) {
   const [activeLayer, setActiveLayer] = useState<'satellite' | 'street'>('satellite');
   const [searchVisible, setSearchVisible] = useState(false);
@@ -400,22 +360,22 @@ export default function MapComponent({
     <div className={`relative h-full w-full ${className}`}>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
-        .leaflet-container { background: #0A1F0A !important; }
+        .leaflet-container { background: #F1F5F9 !important; }
         .leaflet-control-zoom a {
-          background: #0D2818 !important;
-          color: #E8F5E9 !important;
-          border-color: #1B4D2E !important;
+          background: white !important;
+          color: #475569 !important;
+          border-color: #E2E8F0 !important;
         }
-        .leaflet-control-zoom a:hover { background: #1A3A2A !important; }
+        .leaflet-control-zoom a:hover { background: #F8FAFC !important; }
         .leaflet-popup-content-wrapper {
-          background: #132A1A !important;
-          color: #E8F5E9 !important;
-          border: 1px solid #1B4D2E !important;
-          border-radius: 8px !important;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
+          background: white !important;
+          color: #1E293B !important;
+          border: 1px solid #E2E8F0 !important;
+          border-radius: 12px !important;
+          box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
         }
-        .leaflet-popup-tip { background: #132A1A !important; border: 1px solid #1B4D2E !important; }
-        .leaflet-popup-close-button { color: #6B8E6B !important; }
+        .leaflet-popup-tip { background: white !important; border: 1px solid #E2E8F0 !important; }
+        .leaflet-popup-close-button { color: #94A3B8 !important; }
       `}</style>
 
       <MapContainer
@@ -424,7 +384,7 @@ export default function MapComponent({
         className="h-full w-full"
         zoomControl={false}
         attributionControl={true}
-        doubleClickZoom={!isDrawing}
+        doubleClickZoom={!isDrawing && !isMeasuring}
       >
         <ZoomControl position="bottomright" />
 
@@ -448,39 +408,42 @@ export default function MapComponent({
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution=""
-            opacity={0.12}
+            opacity={0.10}
             maxZoom={19}
           />
         )}
 
-        {!isDrawing && <MapEvents onLocationSelect={onLocationSelect} />}
+        {!isDrawing && !isMeasuring && <MapEvents onLocationSelect={onLocationSelect} />}
+
         <DrawingUI
           isActive={isDrawing}
           onPolygonComplete={handlePolygonComplete}
           onCancel={() => onDrawingCancel?.()}
         />
 
-        {/* Analysis overlays */}
+        <MeasureControl
+          isActive={isMeasuring}
+          onComplete={(v) => onMeasurementComplete?.(v)}
+          onCancel={() => onMeasureCancel?.()}
+        />
+
         {showNDVI && <NDVILayer />}
         {showNDWI && <NDWILayer />}
         {showSAVI && <SAVILayer />}
 
-        {/* Location search */}
         {searchVisible && <LocationSearch />}
-
-        {/* Weather overlay */}
         {showWeather && <WeatherOverlay />}
 
-        {!isDrawing && <InitialZoom />}
+        {!isDrawing && !isMeasuring && <InitialZoom />}
         <MyLocationButton />
 
-        {selectedLocation && !isDrawing && (
+        {selectedLocation && !isDrawing && !isMeasuring && (
           <Marker position={selectedLocation} icon={selectedIcon}>
             <Popup>
-              <div style={{ fontSize: 12, lineHeight: 1.6 }}>
-                <strong style={{ color: '#52B788' }}>Selected Location</strong><br />
-                Lat: <span style={{ color: '#A5D6A7' }}>{selectedLocation[0].toFixed(6)}</span><br />
-                Lng: <span style={{ color: '#A5D6A7' }}>{selectedLocation[1].toFixed(6)}</span>
+              <div className="text-xs leading-relaxed">
+                <strong className="text-[#2563EB]">Selected Location</strong><br />
+                Lat: <span className="text-[#475569]">{selectedLocation[0].toFixed(6)}</span><br />
+                Lng: <span className="text-[#475569]">{selectedLocation[1].toFixed(6)}</span>
               </div>
             </Popup>
           </Marker>
@@ -489,8 +452,8 @@ export default function MapComponent({
         {farms.map((farm) => (
           <Marker key={farm.id} position={farm.center} icon={farmIcon}>
             <Popup>
-              <div style={{ fontSize: 12, lineHeight: 1.6 }}>
-                <strong style={{ color: '#95D5B2' }}>{farm.name}</strong>
+              <div className="text-xs">
+                <strong className="text-[#2563EB]">{farm.name}</strong>
               </div>
             </Popup>
           </Marker>
@@ -508,20 +471,18 @@ export default function MapComponent({
             }}
           >
             <Popup>
-              <div style={{ fontSize: 12, lineHeight: 1.6 }}>
-                <strong style={{ color: '#95D5B2' }}>{poly.name}</strong>
+              <div className="text-xs">
+                <strong className="text-[#2563EB]">{poly.name}</strong>
               </div>
             </Popup>
           </Polygon>
         ))}
       </MapContainer>
 
-      {/* Floating legends */}
       {showNDVI && <NDVILegend />}
       {showNDWI && <NDWILegend />}
       {showSAVI && <SAVILegend />}
 
-      {/* Weather Forecast Panel */}
       {weatherLocation && (
         <WeatherForecast
           key={`${weatherLocation[0]}-${weatherLocation[1]}`}
@@ -531,22 +492,9 @@ export default function MapComponent({
         />
       )}
 
-      {/* Analysis indicator badge */}
-      {activeAnalysisCount > 0 && (
-        <div style={{
-          position: 'absolute',
-          bottom: 24,
-          left: 12,
-          zIndex: 1000,
-          background: 'rgba(10, 31, 10, 0.9)',
-          border: '1px solid #1B4D2E',
-          borderRadius: 8,
-          padding: '4px 10px',
-          fontSize: 10,
-          color: '#52B788',
-          backdropFilter: 'blur(8px)',
-        }}>
-          {activeAnalysisCount} analysis overlay{activeAnalysisCount > 1 ? 's' : ''} active
+      {activeAnalysisCount > 0 && !isDrawing && !isMeasuring && (
+        <div className="absolute bottom-6 left-3 z-[1000] bg-white/90 border border-[#E2E8F0] rounded-lg px-3 py-1.5 text-[10px] text-[#64748B] backdrop-blur-sm shadow-sm">
+          {activeAnalysisCount} overlay{activeAnalysisCount > 1 ? 's' : ''} active
         </div>
       )}
 

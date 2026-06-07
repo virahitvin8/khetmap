@@ -15,11 +15,7 @@ interface ForecastDay {
   rain: number;
 }
 
-interface WeatherForecastProps {
-  lat: number;
-  lng: number;
-  onClose: () => void;
-}
+interface WeatherForecastProps { lat: number; lng: number; onClose: () => void; }
 
 function getDayLabel(dt: number): string {
   const now = new Date();
@@ -32,39 +28,28 @@ function getDayLabel(dt: number): string {
 
 function groupByDay(entries: any[]): ForecastDay[] {
   const days: Record<string, any[]> = {};
-  
   entries.forEach((e: any) => {
     const dateKey = new Date(e.dt * 1000).toDateString();
     if (!days[dateKey]) days[dateKey] = [];
     days[dateKey].push(e);
   });
-
   const today = new Date().toDateString();
-  const todayEntries = days[today] || [];
-  const now = new Date();
-  
-  return Object.entries(days)
-    .slice(0, 5)
-    .map(([dateKey, entries]) => {
-      const temps = entries.map((e: any) => e.main.temp);
-      const rains = entries.map((e: any) => e.rain?.['3h'] || 0);
-      const midday = entries.find((e: any) => {
-        const hour = new Date(e.dt * 1000).getHours();
-        return hour >= 11 && hour <= 14;
-      }) || entries[Math.floor(entries.length / 2)];
-
-      return {
-        date: dateKey,
-        dayLabel: dateKey === today ? 'Today' : getDayLabel(entries[0].dt),
-        tempHigh: Math.round(Math.max(...temps)),
-        tempLow: Math.round(Math.min(...temps)),
-        humidity: Math.round(midday.main.humidity),
-        windSpeed: Math.round(midday.wind.speed * 3.6), // m/s to km/h
-        description: midday.weather[0].description,
-        icon: midday.weather[0].icon,
-        rain: Math.round(rains.reduce((a: number, b: number) => a + b, 0)),
-      };
-    });
+  return Object.entries(days).slice(0, 5).map(([dateKey, entries]) => {
+    const temps = entries.map((e: any) => e.main.temp);
+    const rains = entries.map((e: any) => e.rain?.['3h'] || 0);
+    const midday = entries.find((e: any) => { const h = new Date(e.dt * 1000).getHours(); return h >= 11 && h <= 14; }) || entries[Math.floor(entries.length / 2)];
+    return {
+      date: dateKey,
+      dayLabel: dateKey === today ? 'Today' : getDayLabel(entries[0].dt),
+      tempHigh: Math.round(Math.max(...temps)),
+      tempLow: Math.round(Math.min(...temps)),
+      humidity: Math.round(midday.main.humidity),
+      windSpeed: Math.round(midday.wind.speed * 3.6),
+      description: midday.weather[0].description,
+      icon: midday.weather[0].icon,
+      rain: Math.round(rains.reduce((a: number, b: number) => a + b, 0)),
+    };
+  });
 }
 
 export default function WeatherForecast({ lat, lng, onClose }: WeatherForecastProps) {
@@ -73,182 +58,71 @@ export default function WeatherForecast({ lat, lng, onClose }: WeatherForecastPr
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!API_KEY) {
-      setError('Set VITE_OWM_API_KEY in .env for weather forecast');
-      setLoading(false);
-      return;
-    }
-
+    if (!API_KEY) { setError('Set VITE_OWM_API_KEY in .env'); setLoading(false); return; }
     const fetchForecast = async () => {
       try {
-        const res = await fetch(
-          `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lng}&appid=${API_KEY}&units=metric`
-        );
-        if (!res.ok) throw new Error('Failed to fetch forecast');
+        const res = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lng}&appid=${API_KEY}&units=metric`);
+        if (!res.ok) throw new Error('Failed to fetch');
         const data = await res.json();
-        const grouped = groupByDay(data.list);
-        setForecast(grouped);
-      } catch (e: any) {
-        setError(e.message || 'Failed to load forecast');
-      } finally {
-        setLoading(false);
-      }
+        setForecast(groupByDay(data.list));
+      } catch (e: any) { setError(e.message || 'Failed to load'); }
+      finally { setLoading(false); }
     };
-
     fetchForecast();
   }, [lat, lng]);
 
   const now = forecast[0];
 
   return (
-    <div style={{
-      position: 'absolute',
-      bottom: 0,
-      left: 0,
-      right: 0,
-      zIndex: 1500,
-      background: 'rgba(13, 40, 24, 0.97)',
-      borderTop: '1px solid #1B4D2E',
-      borderRadius: '16px 16px 0 0',
-      backdropFilter: 'blur(12px)',
-      maxHeight: '50vh',
-      overflow: 'auto',
-      animation: 'slideUp 0.3s ease-out',
-    }}>
-      <style>{`
-        @keyframes slideUp {
-          from { transform: translateY(100%); }
-          to { transform: translateY(0); }
-        }
-      `}</style>
+    <div className="absolute bottom-0 left-0 right-0 z-[1500] bg-white/98 border-t border-[#E2E8F0] rounded-t-2xl shadow-2xl backdrop-blur-xl max-h-[50vh] overflow-auto animate-slide-up">
+      <style>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
 
-      {/* Handle bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(255, 200, 50, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Sun size={16} color="#FFD54F" />
+      <div className="flex justify-between items-center px-4 pt-3 pb-0">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-full bg-[#FEF3C7] flex items-center justify-center">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
           </div>
           <div>
-            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#E8F5E9' }}>
-              Weather Forecast
-            </h3>
-            <p style={{ margin: 0, fontSize: 10, color: '#6B8E6B' }}>
-              {lat.toFixed(4)}, {lng.toFixed(4)}
-            </p>
+            <h3 className="text-sm font-bold text-[#1E293B] m-0">Weather Forecast</h3>
+            <p className="text-[10px] text-[#64748B] m-0">{lat.toFixed(4)}, {lng.toFixed(4)}</p>
           </div>
         </div>
-        <button
-          onClick={onClose}
-          style={{
-            width: 28, height: 28,
-            borderRadius: 8,
-            border: '1px solid #1B4D2E',
-            background: '#0D2818',
-            color: '#6B8E6B',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <X size={14} />
-        </button>
+        <button onClick={onClose} className="w-7 h-7 rounded-lg border border-[#E2E8F0] bg-white text-[#94A3B8] flex items-center justify-center hover:bg-[#F8FAFC]"><X size={14} /></button>
       </div>
 
-      <div style={{ padding: '12px 16px 16px' }}>
+      <div className="px-4 pb-4 pt-3">
         {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: 20 }}>
-            <div style={{ width: 20, height: 20, border: '2px solid #52B788', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-          </div>
+          <div className="flex justify-center py-5"><div className="w-5 h-5 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" /></div>
         ) : error ? (
-          <div style={{ padding: 12, textAlign: 'center', fontSize: 12, color: '#EF5350', background: 'rgba(239,83,80,0.1)', borderRadius: 8 }}>
-            {error}
-          </div>
+          <div className="text-xs text-[#EF4444] bg-[#FEF2F2] rounded-lg p-3 text-center">{error}</div>
         ) : (
           <>
-            {/* Today's summary */}
             {now && (
-              <div style={{
-                background: 'rgba(82,183,136,0.08)',
-                border: '1px solid rgba(82,183,136,0.2)',
-                borderRadius: 12,
-                padding: '12px 16px',
-                marginBottom: 12,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}>
+              <div className="bg-[#EFF6FF] border border-[#BFDBFE] rounded-xl p-3.5 mb-3 flex items-center justify-between">
                 <div>
-                  <p style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#E8F5E9' }}>
-                    {now.tempHigh}°C
-                  </p>
-                  <p style={{ margin: 0, fontSize: 11, color: '#A5D6A7', textTransform: 'capitalize' }}>
-                    {now.description}
-                  </p>
+                  <p className="text-2xl font-bold text-[#1E293B] m-0">{now.tempHigh}°C</p>
+                  <p className="text-[11px] text-[#64748B] capitalize m-0">{now.description}</p>
                 </div>
-                <div style={{ display: 'flex', gap: 16 }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <Droplets size={16} color="#42A5F5" style={{ margin: '0 auto 2px' }} />
-                    <p style={{ margin: 0, fontSize: 11, color: '#E8F5E9' }}>{now.humidity}%</p>
-                    <p style={{ margin: 0, fontSize: 8, color: '#6B8E6B' }}>Humidity</p>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <Wind size={16} color="#66BB6A" style={{ margin: '0 auto 2px' }} />
-                    <p style={{ margin: 0, fontSize: 11, color: '#E8F5E9' }}>{now.windSpeed}</p>
-                    <p style={{ margin: 0, fontSize: 8, color: '#6B8E6B' }}>km/h</p>
-                  </div>
+                <div className="flex gap-4">
+                  <div className="text-center"><Droplets size={16} className="mx-auto mb-0.5 text-[#3B82F6]" /><p className="text-xs font-semibold text-[#1E293B] m-0">{now.humidity}%</p><p className="text-[8px] text-[#64748B] m-0">Humidity</p></div>
+                  <div className="text-center"><Wind size={16} className="mx-auto mb-0.5 text-[#22C55E]" /><p className="text-xs font-semibold text-[#1E293B] m-0">{now.windSpeed}</p><p className="text-[8px] text-[#64748B] m-0">km/h</p></div>
                   {now.rain > 0 && (
-                    <div style={{ textAlign: 'center' }}>
-                      <CloudRain size={16} color="#42A5F5" style={{ margin: '0 auto 2px' }} />
-                      <p style={{ margin: 0, fontSize: 11, color: '#E8F5E9' }}>{now.rain}mm</p>
-                      <p style={{ margin: 0, fontSize: 8, color: '#6B8E6B' }}>Rain</p>
-                    </div>
+                    <div className="text-center"><CloudRain size={16} className="mx-auto mb-0.5 text-[#3B82F6]" /><p className="text-xs font-semibold text-[#1E293B] m-0">{now.rain}mm</p><p className="text-[8px] text-[#64748B] m-0">Rain</p></div>
                   )}
                 </div>
               </div>
             )}
-
-            {/* 5-day forecast */}
-            <div style={{ display: 'flex', gap: 6 }}>
+            <div className="flex gap-1.5">
               {forecast.map((day) => (
-                <div
-                  key={day.date}
-                  style={{
-                    flex: 1,
-                    background: '#0D2818',
-                    borderRadius: 10,
-                    border: '1px solid #1B4D2E',
-                    padding: '8px 4px',
-                    textAlign: 'center',
-                  }}
-                >
-                  <p style={{ margin: '0 0 4px', fontSize: 9, color: '#6B8E6B', fontWeight: 600 }}>
-                    {day.dayLabel}
-                  </p>
-                  <div style={{ fontSize: 18, marginBottom: 2 }}>
-                    {day.icon?.includes('d') ? '☀️' : '🌙'}
-                  </div>
-                  <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#E8F5E9' }}>
-                    {day.tempHigh}°
-                  </p>
-                  <p style={{ margin: 0, fontSize: 9, color: '#6B8E6B' }}>
-                    {day.tempLow}°
-                  </p>
-                  {day.rain > 0 && (
-                    <p style={{ margin: '4px 0 0', fontSize: 8, color: '#42A5F5', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-                      <CloudRain size={10} />
-                      {day.rain}mm
-                    </p>
-                  )}
+                <div key={day.date} className="flex-1 bg-[#F8FAFC] rounded-xl px-2 py-2.5 border border-[#E2E8F0] text-center">
+                  <p className="text-[9px] font-semibold text-[#64748B] m-0 mb-1">{day.dayLabel}</p>
+                  <div className="text-lg mb-1">{day.icon?.includes('d') ? '☀️' : '🌙'}</div>
+                  <p className="text-sm font-bold text-[#1E293B] m-0">{day.tempHigh}°</p>
+                  <p className="text-[9px] text-[#94A3B8] m-0">{day.tempLow}°</p>
+                  {day.rain > 0 && <p className="text-[8px] text-[#3B82F6] mt-1 m-0 flex items-center justify-center gap-1"><CloudRain size={10} />{day.rain}mm</p>}
                 </div>
               ))}
             </div>
-
-            {!API_KEY && (
-              <p style={{ margin: '12px 0 0', fontSize: 10, color: '#6B8E6B', textAlign: 'center' }}>
-                Get a free API key at <span style={{ color: '#52B788' }}>openweathermap.org</span> and add it to .env
-              </p>
-            )}
           </>
         )}
       </div>

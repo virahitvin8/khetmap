@@ -1,12 +1,8 @@
 import { useState } from 'react';
 import { TileLayer } from 'react-leaflet';
 
-// OpenWeatherMap tile layers for weather visualization
-// Free with valid API key — 1,000 calls/day on free tier
 const OWM_BASE = 'https://tile.openweathermap.org/map';
 const API_KEY = import.meta.env.VITE_OWM_API_KEY || '';
-
-// Weather layers available
 type WeatherLayer = 'precipitation_new' | 'temp_new' | 'clouds_new' | 'wind_new';
 
 const LAYER_LABELS: Record<WeatherLayer, string> = {
@@ -17,60 +13,28 @@ const LAYER_LABELS: Record<WeatherLayer, string> = {
 };
 
 const LAYER_COLORS: Record<WeatherLayer, string> = {
-  'precipitation_new': '#42A5F5',
-  'temp_new': '#FF7043',
-  'clouds_new': '#BDBDBD',
-  'wind_new': '#66BB6A',
+  'precipitation_new': '#3B82F6',
+  'temp_new': '#F97316',
+  'clouds_new': '#94A3B8',
+  'wind_new': '#22C55E',
 };
 
-interface WeatherOverlayProps {
-  opacity?: number;
-}
+interface WeatherOverlayProps { opacity?: number; }
 
-function WeatherLayerToggle({
-  activeLayer,
-  onChange,
-}: {
-  activeLayer: WeatherLayer;
-  onChange: (layer: WeatherLayer) => void;
-}) {
+function WeatherLayerToggle({ activeLayer, onChange }: { activeLayer: WeatherLayer; onChange: (layer: WeatherLayer) => void }) {
   const layers: WeatherLayer[] = ['precipitation_new', 'temp_new', 'clouds_new', 'wind_new'];
-
   return (
-    <div style={{
-      position: 'absolute',
-      top: 160,
-      right: 12,
-      zIndex: 1000,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 3,
-    }}>
+    <div className="absolute top-[170px] right-3 z-[1000] flex flex-col gap-1">
       {layers.map((layer) => (
-        <button
-          key={layer}
-          onClick={() => onChange(layer)}
-          style={{
-            width: 40,
-            height: 28,
-            borderRadius: 6,
-            border: `1.5px solid ${activeLayer === layer ? LAYER_COLORS[layer] : '#1B4D2E'}`,
-            background: activeLayer === layer ? `${LAYER_COLORS[layer]}22` : '#0D2818',
-            color: '#E8F5E9',
-            cursor: 'pointer',
-            fontSize: 9,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.2s',
-            backdropFilter: 'blur(8px)',
-            fontWeight: activeLayer === layer ? 700 : 400,
-          }}
-          title={LAYER_LABELS[layer]}
-        >
-          {layer === 'precipitation_new' ? '🌧' :
-           layer === 'temp_new' ? '🌡' :
-           layer === 'clouds_new' ? '☁️' : '💨'}
+        <button key={layer} onClick={() => onChange(layer)}
+          className={`w-9 h-7 rounded-md border flex items-center justify-center text-xs transition-all backdrop-blur-sm ${
+            activeLayer === layer
+              ? 'bg-white border-[#2563EB] shadow-sm'
+              : 'bg-white border-[#E2E8F0] text-[#64748B] hover:bg-[#F8FAFC]'
+          }`}
+          style={activeLayer === layer ? { borderColor: LAYER_COLORS[layer], boxShadow: `0 0 0 1px ${LAYER_COLORS[layer]}20` } : undefined}
+          title={LAYER_LABELS[layer]}>
+          {layer === 'precipitation_new' ? '🌧' : layer === 'temp_new' ? '🌡' : layer === 'clouds_new' ? '☁️' : '💨'}
         </button>
       ))}
     </div>
@@ -80,38 +44,13 @@ function WeatherLayerToggle({
 export default function WeatherOverlay({ opacity = 0.5 }: WeatherOverlayProps) {
   const [activeLayer, setActiveLayer] = useState<WeatherLayer>('precipitation_new');
   const hasKey = !!API_KEY;
-
-  const tileUrl = hasKey
-    ? `${OWM_BASE}/${activeLayer}/{z}/{y}/{x}.png?appid=${API_KEY}`
-    : null;
+  const tileUrl = hasKey ? `${OWM_BASE}/${activeLayer}/{z}/{y}/{x}.png?appid=${API_KEY}` : null;
 
   return (
     <>
-      {tileUrl && (
-        <TileLayer
-          key={`weather-${activeLayer}`}
-          url={tileUrl}
-          attribution="&copy; <a href='https://openweathermap.org'>OpenWeatherMap</a>"
-          opacity={opacity}
-          maxZoom={18}
-        />
-      )}
+      {tileUrl && <TileLayer key={`weather-${activeLayer}`} url={tileUrl} attribution="&copy; <a href='https://openweathermap.org'>OpenWeatherMap</a>" opacity={opacity} maxZoom={18} />}
       {!hasKey && (
-        <div style={{
-          position: 'absolute',
-          top: 170,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 1000,
-          background: 'rgba(239,83,80,0.9)',
-          color: 'white',
-          padding: '6px 14px',
-          borderRadius: 8,
-          fontSize: 11,
-          fontWeight: 500,
-          backdropFilter: 'blur(8px)',
-          whiteSpace: 'nowrap',
-        }}>
+        <div className="absolute top-[175px] left-1/2 -translate-x-1/2 z-[1000] bg-[#FEF2F2] text-[#EF4444] px-3 py-1.5 rounded-lg text-[10px] font-medium backdrop-blur-sm whitespace-nowrap border border-[#FECACA] shadow-sm">
           ⚠️ Set VITE_OWM_API_KEY in .env for weather tiles
         </div>
       )}

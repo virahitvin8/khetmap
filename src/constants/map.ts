@@ -1,8 +1,8 @@
 export const POLYGON_COLORS = [
-  '#52B788',
+  '#2563EB',
+  '#3B82F6',
   '#60A5FA',
-  '#F59E0B',
-  '#A78BFA',
-  '#F97316',
-  '#EC4899',
+  '#93C5FD',
+  '#1D4ED8',
+  '#1E40AF',
 ];
