@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FlaskRoundIcon as Flask, Leaf, Droplets, Mountain, AlertTriangle, TrendingUp, Download, RefreshCw } from 'lucide-react';
 import { analyzeField, FieldAnalysisResult, AnalysisLayer } from '../../services/fieldAnalysis';
 import { toast } from 'sonner';
@@ -36,8 +36,8 @@ export default function FieldAnalysisReport({ fieldName, vertices, areaHa, onClo
     runAnalysis(layer);
   };
 
-  // Run on mount
-  useState(() => { runAnalysis(selectedLayer); });
+  // Run analysis on mount and when layer changes
+  useEffect(() => { runAnalysis(selectedLayer); }, [selectedLayer]);
 
   const getScoreColor = (score: number) => {
     if (score >= 70) return '#22C55E';
@@ -108,7 +108,19 @@ export default function FieldAnalysisReport({ fieldName, vertices, areaHa, onClo
             </div>
           )}
 
-          {result && !loading && (
+          {result && !loading && result.sampleCount === 0 && (
+            <div className="bg-[#FEFCE8] border border-[#FDE68A] rounded-xl p-4 text-center">
+              <AlertTriangle size={24} className="text-[#F59E0B] mx-auto mb-2" />
+              <p className="text-sm font-semibold text-[#92400E] mb-1">Analysis in Demo Mode</p>
+              <p className="text-xs text-[#64748B]">NASA GIBS data couldn't be loaded (CORS restriction). Showing simulated analysis based on field geometry. Results are approximate — for real data, connect to Sentinel Hub API.</p>
+              <button onClick={() => runAnalysis(selectedLayer)}
+                className="mt-3 px-4 py-2 bg-[#2563EB] text-white rounded-lg text-xs font-semibold hover:bg-[#1D4ED8] transition-colors inline-flex items-center gap-1.5">
+                <RefreshCw size={14} /> Retry
+              </button>
+            </div>
+          )}
+
+          {result && !loading && result.sampleCount > 0 && (
             <>
               {/* Overall Health Score */}
               <div className="bg-[#F8FAFC] rounded-xl p-4 border border-[#E2E8F0] text-center">
