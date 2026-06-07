@@ -12,8 +12,6 @@ import { downloadShapefile } from '../../services/shapefile';
 import { toast } from 'sonner';
 import { POLYGON_COLORS } from '../../constants/map';
 
-const SHAPEFILE_AVAILABLE = true; // jszip is installed
-
 interface Vertex {
   lat: number;
   lng: number;
@@ -248,22 +246,20 @@ export default function MapPage() {
     setShowExport(false);
   };
 
-  // Export as real ESRI Shapefile (.shp/.shx/.dbf)
+  // Export as real ESRI Shapefile (.shp/.shx/.dbf per polygon, ZIP bundled)
   const handleExportShapefile = async () => {
     if (farmPolygons.length === 0) {
       toast.error('No fields to export');
       return;
     }
     try {
-      const fields = farmPolygons.map((p, i) => ({
+      const polygons = farmPolygons.map(p => ({
         name: p.name,
+        vertices: p.vertices,
         areaHa: calculateArea(p.vertices),
-        cropType: undefined as string | undefined,
       }));
-      // Use vertices from the first polygon for geometry
-      const firstVerts = farmPolygons[0].vertices;
-      await downloadShapefile('khetmap_fields', firstVerts, fields);
-      toast.success('Shapefile exported (.shp/.shx/.dbf in ZIP)');
+      await downloadShapefile(polygons);
+      toast.success(`Shapefile bundle exported (${polygons.length} fields)`);
     } catch {
       toast.error('Shapefile export failed');
     }
