@@ -13,4 +13,17 @@ export default defineConfig({
     },
   },
   assetsInclude: ['**/*.svg', '**/*.csv'],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router'],
+          'leaflet': ['leaflet', 'react-leaflet', 'leaflet-draw'],
+          'ui-vendor': ['lucide-react', 'sonner', 'motion', 'recharts'],
+          'clerk': ['@clerk/clerk-react'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 300,
+  },
 })

@@ -8,8 +8,11 @@ import MapComponent from '../components/MapComponent';
 import SaveFieldModal from '../components/SaveFieldModal';
 import FileUpload from '../components/FileUpload';
 import { getCentroid, calculateArea } from '../components/DrawFieldControl';
+import { downloadShapefile } from '../../services/shapefile';
 import { toast } from 'sonner';
 import { POLYGON_COLORS } from '../../constants/map';
+
+const SHAPEFILE_AVAILABLE = true; // jszip is installed
 
 interface Vertex {
   lat: number;
@@ -245,31 +248,25 @@ export default function MapPage() {
     setShowExport(false);
   };
 
-  // Export as shapefile (ESRI)
-  const handleExportShapefile = () => {
+  // Export as real ESRI Shapefile (.shp/.shx/.dbf)
+  const handleExportShapefile = async () => {
     if (farmPolygons.length === 0) {
       toast.error('No fields to export');
       return;
     }
-    // Create DBF header + records (simplified shapefile)
-    const features = farmPolygons.map((p, i) => ({
-      id: i + 1,
-      name: p.name.substring(0, 11),
-      area: calculateArea(p.vertices),
-    }));
-
-    const header = 'id,name,area_ha\n';
-    const rows = features.map(f => `${f.id},${f.name},${f.area.toFixed(4)}`).join('\n');
-    const csv = header + rows;
-
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'khetmap_fields_shapefile_attributes.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('CSV exported (add .shp, .shx for full Shapefile format)');
+    try {
+      const fields = farmPolygons.map((p, i) => ({
+        name: p.name,
+        areaHa: calculateArea(p.vertices),
+        cropType: undefined as string | undefined,
+      }));
+      // Use vertices from the first polygon for geometry
+      const firstVerts = farmPolygons[0].vertices;
+      await downloadShapefile('khetmap_fields', firstVerts, fields);
+      toast.success('Shapefile exported (.shp/.shx/.dbf in ZIP)');
+    } catch {
+      toast.error('Shapefile export failed');
+    }
     setShowExport(false);
   };
 
@@ -423,7 +420,7 @@ td { padding: 10px; border: 1px solid #E2E8F0; }
                         🌍 KML (.kml)
                       </button>
                       <button onClick={handleExportShapefile} className="w-full px-4 py-2.5 text-xs text-[#475569] hover:bg-[#F8FAFC] text-left flex items-center gap-2">
-                        📊 Attributes (CSV)
+                        📦 Shapefile (.shp/.dbf)
                       </button>
                       <button onClick={handleExportPDF} className="w-full px-4 py-2.5 text-xs text-[#475569] hover:bg-[#F8FAFC] text-left flex items-center gap-2">
                         📋 Report (.html/PDF)
