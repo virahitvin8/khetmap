@@ -1,8 +1,57 @@
+# Dependencies
 node_modules/
+
+# Build outputs
 dist/
+build/
+
+# Environment files
 .env
 .env.local
 *.local
-.DS_Store
 
+# IDE
+.DS_Store
+.idea/
+*.swp
+*.swo
+.vscode/
+*.code-workspace
+
+# Vercel
 .vercel
+
+# Capacitor / Mobile
+android/app/build/
+android/.gradle/
+android/build/
+android/local.properties
+android/captures/
+android/.externalNativeBuild/
+ios/App/build/
+ios/Pods/
+ios/*.xcworkspace
+
+# APK / AAB
+*.apk
+*.aab
+*.apk.*
+
+# Keystore / Signing
+*.keystore
+*.jks
+keystore.properties
+release-*.properties
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*

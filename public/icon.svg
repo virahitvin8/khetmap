@@ -1,23 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#2563EB"/>
       <stop offset="100%" style="stop-color:#1D4ED8"/>
     </linearGradient>
   </defs>
-  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
-  <!-- Map pin with leaf -->
-  <g transform="translate(256, 260)" fill="none" stroke="white" stroke-width="20" stroke-linejoin="round" stroke-linecap="round">
-    <path d="M0,-140 C-80,-140 -140,-80 -140,0 C-140,100 0,180 0,180 C0,180 140,100 140,0 C140,-80 80,-140 0,-140Z" fill="rgba(255,255,255,0.15)" stroke="white" stroke-width="16"/>
-    <path d="M0,-80 C-20,-40 -30,0 0,60" stroke-width="18"/>
-    <path d="M0,-80 C20,-40 30,0 0,60" stroke-width="18"/>
-    <path d="M-35,-15 L35,-15" stroke-width="14"/>
-  </g>
-  <!-- Satellite dish -->
-  <g transform="translate(380, 120)" stroke="white" stroke-width="12" fill="none" stroke-linecap="round">
-    <circle cx="0" cy="0" r="30" fill="rgba(255,255,255,0.2)"/>
-    <line x1="0" y1="30" x2="0" y2="60"/>
-    <line x1="0" y1="45" x2="-25" y2="65"/>
-    <line x1="0" y1="45" x2="25" y2="65"/>
-  </g>
+  <rect rx="18" width="100" height="100" fill="url(#bg)"/>
+  <circle cx="50" cy="46" r="28" fill="rgba(255,255,255,0.12)" stroke="white" stroke-width="3"/>
+  <path d="M50 24 Q32 42 50 64" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M50 24 Q68 42 50 64" fill="none" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="36" y1="45" x2="64" y2="45" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="72" cy="22" r="5" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.9)" stroke-width="2"/>
+  <line x1="72" y1="27" x2="72" y2="33" stroke="rgba(255,255,255,0.9)" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="72" y1="30" x2="64" y2="38" stroke="rgba(255,255,255,0.9)" stroke-width="2" stroke-linecap="round"/>
+  <line x1="72" y1="30" x2="80" y2="38" stroke="rgba(255,255,255,0.9)" stroke-width="2" stroke-linecap="round"/>
 </svg>

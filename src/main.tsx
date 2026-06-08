@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import { ClerkProvider } from "@clerk/clerk-react";
 import App from "./app/App.tsx";
+import { initFirebase } from "./services/firebase";
 import "./styles/index.css";
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -8,6 +9,9 @@ const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 if (!PUBLISHABLE_KEY) {
   throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY environment variable");
 }
+
+// Initialize Firebase (non-blocking — falls back to localStorage if not configured)
+initFirebase();
 
 createRoot(document.getElementById("root")!).render(
   <ClerkProvider publishableKey={PUBLISHABLE_KEY}>

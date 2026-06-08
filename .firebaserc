@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "khet-map"
-  }
+    "default": "khet-map",
+    "Default": "khet-map"
+  },
+  "targets": {},
+  "etags": {}
 }

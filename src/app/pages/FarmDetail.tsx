@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { ArrowLeft, MapPin, Leaf, Ruler, Calendar, FileDown, Download, Edit3, Trash2, Globe, AlertTriangle, FlaskConical } from 'lucide-react';
+import { ArrowLeft, MapPin, Leaf, Ruler, Calendar, FileDown, Download, Edit3, Trash2, Globe, AlertTriangle, FlaskConical, Activity } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { subscribeToFarms, deleteFarm, updateFarm, Farm } from '../../services/database';
 import NDVIHistoryChart from '../components/NDVIHistoryChart';
 import FieldAnalysisReport from '../components/FieldAnalysisReport';
 import MultiSatelliteDashboard from '../components/MultiSatelliteDashboard';
+import LandAnalysisModal from '../components/LandAnalysisModal';
 import { toast } from 'sonner';
 
 export default function FarmDetail() {
@@ -23,6 +24,7 @@ export default function FarmDetail() {
   const [saving, setSaving] = useState(false);
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [showMultiSat, setShowMultiSat] = useState(false);
+  const [showLandAnalysis, setShowLandAnalysis] = useState(false);
 
   useEffect(() => {
     if (!user || !id) return;
@@ -273,7 +275,11 @@ td { padding: 10px; border: 1px solid #E2E8F0; }
           </button>
           <button onClick={() => setShowMultiSat(true)}
             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-[#F0FDF4] text-[#166534] rounded-lg text-xs font-semibold hover:bg-[#DCFCE7] transition-colors border border-[#BBF7D0]">
-            <Globe size={14} /> Multi-Satellite
+            <Globe size={14} /> Multi-Sat
+          </button>
+          <button onClick={() => setShowLandAnalysis(true)}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-[#FFF7ED] text-[#9A3412] rounded-lg text-xs font-semibold hover:bg-[#FFEDD5] transition-colors border border-[#FDE68A]">
+            <Activity size={14} /> Land
           </button>
         </div>
 
@@ -353,6 +359,16 @@ td { padding: 10px; border: 1px solid #E2E8F0; }
           vertices={vertices}
           areaHa={farm.areaHa}
           onClose={() => setShowMultiSat(false)}
+        />
+      )}
+
+      {/* Land Analysis Modal */}
+      {showLandAnalysis && vertices && vertices.length >= 3 && (
+        <LandAnalysisModal
+          fieldName={farm.name}
+          vertices={vertices}
+          areaHa={farm.areaHa}
+          onClose={() => setShowLandAnalysis(false)}
         />
       )}
 
