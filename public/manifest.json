@@ -1,0 +1,89 @@
+{
+  "name": "Khet Map — खेत मैप",
+  "short_name": "KhetMap",
+  "description": "See your farm from space. Satellite crop health monitoring for every Indian farmer. Free forever.",
+  "theme_color": "#0A1F0A",
+  "background_color": "#050D05",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "start_url": "/",
+  "scope": "/",
+  "lang": "hi-IN",
+  "categories": ["agriculture", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/icons/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/map.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "label": "Satellite field map view"
+    },
+    {
+      "src": "/screenshots/ndvi.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "label": "NDVI crop health overlay"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Open Map",
+      "url": "/map",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Ask HARI AI",
+      "url": "/hari",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
+    }
+  ]
+}
