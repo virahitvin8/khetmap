@@ -4,13 +4,13 @@ stages:
   - deploy
 
 variables:
-  NODE_VERSION: "18"
+  NODE_VERSION: "20"
   DOCKER_DRIVER: overlay2
 
 # ── Build Web App ────────────────────────────────────────────────────
 build-web:
   stage: build
-  image: node:18-alpine
+  image: node:20-alpine
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
@@ -51,7 +51,7 @@ build-apk:
 # ── Deploy to GitLab Pages ───────────────────────────────────────────
 pages:
   stage: deploy
-  image: node:18-alpine
+  image: node:20-alpine
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
