@@ -1,0 +1,57 @@
+name: Feature Request
+description: Suggest a new feature or improvement for KhetMap
+title: "[FEAT] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! KhetMap is built for farmers — tell us how this will help them.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 🌾 What farming problem does this solve?
+      description: Describe the real-world farming use case
+      placeholder: "Farmers in my village can't tell when their paddy crop is ready for harvest..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: 💡 Proposed Solution
+      description: Describe what you'd like to see in KhetMap
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: 📂 Category
+      options:
+        - Satellite / Remote Sensing
+        - Field Management
+        - Weather / Climate
+        - Language / Localization
+        - Mobile / Android
+        - Authentication / Sync
+        - Performance
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: can-implement
+    attributes:
+      label: 🤝 Can you implement this?
+      options:
+        - label: Yes, I can submit a Pull Request for this!
+        - label: I can help with testing/feedback
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 📝 Additional Context
+      description: References, screenshots, links, or examples

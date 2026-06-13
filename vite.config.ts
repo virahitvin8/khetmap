@@ -2,7 +2,12 @@ import { defineConfig } from 'vite'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 
+// GitHub Pages deploys to /khetmap/ subpath — use VITE_BASE_PATH to handle this.
+// Firebase Hosting / Vercel use '/' (no env var needed).
+const base = process.env.VITE_BASE_PATH || '/'
+
 export default defineConfig({
+  base,
   plugins: [
     react(),
     tailwindcss(),

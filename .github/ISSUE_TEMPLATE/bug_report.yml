@@ -1,0 +1,70 @@
+name: Bug Report
+description: Report a bug to help us improve KhetMap
+title: "[BUG] "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! Please fill in as much detail as possible.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 🐛 What happened?
+      description: Describe the bug clearly
+      placeholder: "When I click on NDVI layer, the map goes blank..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 📋 Steps to Reproduce
+      description: How can we reproduce the bug?
+      placeholder: |
+        1. Open the app at khet-map.web.app
+        2. Click on NDVI overlay button
+        3. Zoom to level 10
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: ✅ Expected Behavior
+      description: What should have happened?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: 📱 Platform
+      options:
+        - Web Browser (Chrome)
+        - Web Browser (Firefox)
+        - Web Browser (Safari)
+        - Android APK
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: 💻 Operating System
+      placeholder: "Windows 11 / Android 14 / macOS 14"
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 📸 Screenshots
+      description: Paste any screenshots here
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 📝 Additional Context
+      description: Anything else we should know?
